@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+set -o errexit
+cd "$(dirname "$0")"
+
+uv pip install --system --quiet --editable .
+
+mypy ./src ./tests

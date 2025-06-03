@@ -1,0 +1,21 @@
+[project]
+name = "abm"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Marcell Szegedi", email = "szegedi.marcell@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "numpy>=2.2.6",
+    "scipy>=1.15.3",
+    "typer>=0.16.0",
+]
+
+[project.scripts]
+abm = "abm.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
