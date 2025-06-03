@@ -13,25 +13,34 @@
 
 ---
 
-## 🚀 Running the Model
+## 🚀 &nbsp; Running the Model
 
 *Instructions coming soon.*
 
 ---
 
-## 🤝 Contributing
+## 🤝 &nbsp; Contributing
 
 To contribute to this project, please follow the guidelines below:
 
-#### 🔧 1. Setup
+#### 🔧 &nbsp; 1. &nbsp; Setup
 
 To synchronize all dependencies for the current version of the project, run:
 
 ```bash
 uv sync
 ```
+Also, don't forget to set the Python interpreter to the following path:
 
-#### 🌿 2. Create a Feature Branch
+`.venv/bin/python3`
+
+and activate the virtual environment in your terminal using the following command:
+
+```bash
+source .venv/bin/activate
+```
+
+#### 🌿 &nbsp; 2. &nbsp; Create a Feature Branch
 
 ```bash
 git checkout -b <BRANCH_GROUP>/<BRANCH_NAME>
@@ -43,7 +52,7 @@ Use one of the following branch group prefixes based on the nature of your contr
 
 Please always use meaningful branch names!
 
-#### ✅ 3. Run Checks Before Commit
+#### ✅ &nbsp; 3. &nbsp; Run Checks Before Commiting
 
 Before committing any changes, run the following command to ensure the code is properly linted, formatted, and that all static type checks pass:
 
@@ -58,6 +67,6 @@ git add .
 ```
 This ensures that your fixes are included in the test run. Otherwise, unstaged changes will be stashed and not considered during testing.
 
-#### 🫛 4. Merging Changes
+#### 🫛 &nbsp; 4. &nbsp; Merging Changes
 
 The `main` branch of the project is protected by multiple branch rules. All checks — including linting, formatting, unit tests, and static type checks — must pass before a branch can be considered for merging into `main`. Additionally, at least one administrator's approval is required.
