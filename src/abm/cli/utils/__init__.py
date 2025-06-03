@@ -2,7 +2,6 @@
 
 import numpy as np
 import numpy.typing as npt
-import scipy
 
 
 def main(alma: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
@@ -11,4 +10,4 @@ def main(alma: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
 
 
 if __name__ == "__main__":
-    main("alma")
+    main(np.array([1, 2, 3]))

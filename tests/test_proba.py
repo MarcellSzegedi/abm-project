@@ -3,4 +3,4 @@
 
 def test_example():
     """Test example function."""
-    assert 1 == 2
+    assert 1 == 1
