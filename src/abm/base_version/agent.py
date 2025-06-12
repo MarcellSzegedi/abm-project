@@ -27,7 +27,7 @@ class FanAgent(Agent):
         unique_id: int,
         model: "RiotModel",
         team: bool,
-        state: str = "base",
+        state: str,
     ) -> None:
         """Initializes a FanAgent."""
         super().__init__(model=model, unique_id=unique_id)
@@ -49,7 +49,7 @@ class FanAgent(Agent):
             self._add_agent_state_to_map()
             self._add_agent_team_to_map()
 
-    def step_agent(self) -> None:
+    def step(self) -> None:
         """Executes events during an agent's step."""
         if not self.state == "injured":
             available_cells_to_move = self._find_possible_n_available_cells()
@@ -58,58 +58,108 @@ class FanAgent(Agent):
 
     def _move_agent(self, potential_cell_to_move: list[tuple[int, int]]) -> None:
         """Moves the agent to a neighboring cell based on the agents in the vicinity."""
-        if self.pos[0] != self.model.height:
+        if self.pos[1] != self.model.city_map.shape[0] - 1:
             available_cells_to_move = self._find_cell_to_move(potential_cell_to_move)
             if available_cells_to_move:
                 match self.state:
                     case "base":
-                        rows, cols = zip(*available_cells_to_move)
+                        cols, rows = zip(*available_cells_to_move)
                         team_map = getattr(
                             self.model, f"{'home' if self.team else 'away'}_team_map"
                         )
                         n_same_team_agents = team_map[rows, cols]
+
                         rel_probs_of_available_cells = cell_movement_probability(
-                            n_same_team_agents, len(available_cells_to_move)
+                            self.pos,
+                            available_cells_to_move,
+                            n_same_team_agents,
+                            len(available_cells_to_move)
                         )
 
-                        self._remove_agent_state_from_map()
-                        self._remove_agent_team_from_map()
+                        if np.all(rel_probs_of_available_cells == 0.0):
+                            downward_cells = self._find_available_downward_cells()
+                            if downward_cells:
+                                self._remove_agent_state_from_map()
+                                self._remove_agent_team_from_map()
 
-                        self.model.grid.move_agent(
-                            agent=self,
-                            pos=np.random.choice(
-                                available_cells_to_move,
-                                p=rel_probs_of_available_cells
-                                / np.sum(rel_probs_of_available_cells),
-                            ),
-                        )
+                                self.model.grid.move_agent(
+                                    agent=self,
+                                    pos=random.choices(downward_cells, k=1)[0],
+                                )
 
-                        self._add_agent_state_to_map()
-                        self._add_agent_team_to_map()
+                                self._add_agent_state_to_map()
+                                self._add_agent_team_to_map()
+                        else:
+                            self._remove_agent_state_from_map()
+                            self._remove_agent_team_from_map()
+
+                            self.model.grid.move_agent(
+                                agent=self,
+                                pos=random.choices(
+                                    available_cells_to_move,
+                                    weights=rel_probs_of_available_cells
+                                    / np.sum(rel_probs_of_available_cells),
+                                    k=1
+                                )[0],
+                            )
+
+                            self._add_agent_state_to_map()
+                            self._add_agent_team_to_map()
                     case "riot":
-                        rows, cols = zip(*available_cells_to_move)
+                        cols, rows = zip(*available_cells_to_move)
                         riot_map = self.model.riot_state_map
                         n_riot_agents = riot_map[rows, cols]
+
                         rel_probs_of_available_cells = cell_movement_probability(
-                            n_riot_agents, len(available_cells_to_move)
-                        )
-
-                        self._remove_agent_state_from_map()
-                        self._remove_agent_team_from_map()
-
-                        self.pos = np.random.choice(
+                            self.pos,
                             available_cells_to_move,
-                            p=rel_probs_of_available_cells / np.sum(rel_probs_of_available_cells),
+                            n_riot_agents,
+                            len(available_cells_to_move)
                         )
 
-                        self._add_agent_state_to_map()
-                        self._add_agent_team_to_map()
+                        if np.all(rel_probs_of_available_cells == 0.0):
+                            downward_cells = self._find_available_downward_cells()
+                            if downward_cells:
+                                self._remove_agent_state_from_map()
+                                self._remove_agent_team_from_map()
+
+                                self.model.grid.move_agent(
+                                    agent=self,
+                                    pos=random.choices(downward_cells, k=1)[0],
+                                )
+
+                                self._add_agent_state_to_map()
+                                self._add_agent_team_to_map()
+                        else:
+                            self._remove_agent_state_from_map()
+                            self._remove_agent_team_from_map()
+
+                            self.model.grid.move_agent(
+                                agent=self,
+                                pos=random.choices(
+                                    available_cells_to_move,
+                                    weights=rel_probs_of_available_cells
+                                            / np.sum(rel_probs_of_available_cells),
+                                    k=1
+                                )[0],
+                            )
+
+                            self._add_agent_state_to_map()
+                            self._add_agent_team_to_map()
+                    case "injured":
+                        pass
                     case _:
                         raise ValueError(f"Unknown state: {self.state}")
         else:
-            self.model.remove_agent(self)
             self._remove_agent_state_from_map()
             self._remove_agent_team_from_map()
+
+            if self.team:
+                self.model.left_home_fan_counter += 1
+            else:
+                self.model.left_away_fan_counter += 1
+
+            self.model.remove_agent(self)
 
     def _set_agent_state(self, available_cells: list[tuple[int, int]]) -> None:
         """Chooses and sets the new state of the agent."""
@@ -132,34 +182,38 @@ class FanAgent(Agent):
 
         relative_probs = np.array([rel_prob_base, rel_prob_riot, rel_prob_inured])
 
+        self._remove_agent_state_from_map()
+
         self.state = np.random.choice(
             ["base", "riot", "injured"], p=relative_probs / relative_probs.sum()
         )
 
+        self._add_agent_state_to_map()
+
     def _remove_agent_state_from_map(self) -> None:
-        """Removes the agent from the corresponding state map."""
+        """Removes the agent from the corresponding state map. CHECK"""
         state_map = getattr(self.model, f"{self.state}_state_map")
-        state_map[self.pos] -= 1
+        state_map[self.pos[::-1]] -= 1
 
     def _add_agent_state_to_map(self) -> None:
-        """Adds the agent to the corresponding state map."""
+        """Adds the agent to the corresponding state map. CHECK"""
         state_map = getattr(self.model, f"{self.state}_state_map")
-        state_map[self.pos] += 1
+        state_map[self.pos[::-1]] += 1
 
     def _remove_agent_team_from_map(self) -> None:
-        """Removes the agent from the corresponding team map."""
+        """Removes the agent from the corresponding team map. CHECK"""
         team_map = getattr(self.model, f"{'home' if self.team else 'away'}_team_map")
-        team_map[self.pos] -= 1
+        team_map[self.pos[::-1]] -= 1
 
     def _add_agent_team_to_map(self) -> None:
-        """Adds the agent to the corresponding team map."""
+        """Adds the agent to the corresponding team map. CHECK"""
         team_map = getattr(self.model, f"{'home' if self.team else 'away'}_team_map")
-        team_map[self.pos] += 1
+        team_map[self.pos[::-1]] += 1
 
     def _find_cell_to_move(
         self, potential_cells_to_move: list[tuple[int, int]]
     ) -> list[tuple[int, int]]:
-        """Finds possible cells an agent can move to."""
+        """Finds possible cells an agent can move to based on other agent's positions. CHECK"""
         available_cells_to_move = [
             cell
             for cell in potential_cells_to_move
@@ -168,23 +222,24 @@ class FanAgent(Agent):
         return available_cells_to_move
 
     def _find_possible_n_available_cells(self):
+        """Returns the list of cells in the moore neighborhood of the agent which they can move. CHECK"""
         all_neighbouring_cell = self.model.grid.get_neighborhood(
             pos=self.pos, moore=True, include_center=True
         )
-        return [cell for cell in all_neighbouring_cell if self.model.map[cell]]
+        return [cell for cell in all_neighbouring_cell if self.model.city_map[cell[::-1]]]
 
     def _find_agent_states_in_vicinity(
         self, state_to_find: str, available_cells: list[tuple[int, int]]
     ) -> int:
-        """Aggregate the number of agents in a given state in the vicinity."""
+        """Aggregate the number of agents in a given state in the vicinity. CHECK"""
         state_map = getattr(self.model, f"{state_to_find}_state_map")
-        rows, cols = zip(*available_cells)
+        cols, rows = zip(*available_cells)
         return np.sum(state_map[rows, cols])
 
     def _find_available_downward_cells(self) -> list[tuple[int, int]]:
-        """Finds all the moore neighbor cells, with higher row coordinate."""
+        """Finds all the moore neighbor cells, with higher row coordinate. CHECK"""
         return [
             cell
             for cell in self._find_cell_to_move(self._find_possible_n_available_cells())
-            if cell[0] > self.pos[0]
+            if cell[1] > self.pos[1]
         ]

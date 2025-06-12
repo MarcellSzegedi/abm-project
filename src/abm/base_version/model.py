@@ -32,21 +32,21 @@ class RiotModel(Model):
         height: int,
         entry_point_home: tuple[int, int],
         entry_point_away: tuple[int, int],
-        map: npt.NDArray[np.bool] | None = None,
+        city_map: npt.NDArray[np.bool] | None = None,
     ) -> None:
         super().__init__()
 
         self.scheduler = RandomActivation(self)
 
-        self.grid = MultiGrid(width, height, torus=False)
-        self.map = map if map is not None else np.ones((height + 1, width + 1), dtype=np.bool)
-        self.base_state_map = np.zeros(shape=(height + 1, width + 1))
-        self.riot_state_map = np.zeros(shape=(height + 1, width + 1))
-        self.injured_state_map = np.zeros(shape=(height + 1, width + 1))
-        self.home_team_map = np.zeros(shape=(height + 1, width + 1))
-        self.away_team_map = np.zeros(shape=(height + 1, width + 1))
-        self.entry_point_home = entry_point_home
-        self.entry_point_away = entry_point_away
+        self.grid = MultiGrid(width=width, height=height, torus=False)
+        self.city_map = city_map if city_map is not None else np.ones((height, width), dtype=np.bool)
+        self.base_state_map = np.zeros(shape=(height, width))
+        self.riot_state_map = np.zeros(shape=(height, width))
+        self.injured_state_map = np.zeros(shape=(height, width))
+        self.home_team_map = np.zeros(shape=(height, width))
+        self.away_team_map = np.zeros(shape=(height, width))
+        self.entry_point_home = entry_point_home  # (col, row) format
+        self.entry_point_away = entry_point_away  # (col, row) format
 
         self.agent_state_datacollector = DataCollector(
             {
@@ -58,6 +58,11 @@ class RiotModel(Model):
         self.control_team_fan_counter = DataCollector(
             {"Home": lambda m: np.sum(m.home_team_map), "Away": lambda m: np.sum(m.away_team_map)}
         )
+
+        self.entered_home_fan_counter = 0
+        self.left_home_fan_counter = 0
+        self.entered_away_fan_counter = 0
+        self.left_away_fan_counter = 0
 
     @classmethod
     def run_riot_model(
@@ -99,13 +104,13 @@ class RiotModel(Model):
 
     def remove_agent(self, agent: FanAgent) -> None:
         """Removes the agent from the model."""
+        self._remove_agent_from_maps(pos=agent.pos, team=agent.team, state=agent.state)
         self.grid.remove_agent(agent)
         self.scheduler.remove(agent)
-        self._remove_agent_from_maps(pos=agent.pos, team=agent.team, state=agent.state)
 
     def _init_population(self) -> None:
         """Initializes the population."""
-        while np.sum(self.home_team_map) < INITIAL_ROUND_OF_ENTRY_HOME:
+        while self.entered_home_fan_counter < INITIAL_ROUND_OF_ENTRY_HOME:
             while (
                 len(self.grid.get_cell_list_contents([self.entry_point_home]))
                 < MAX_AVAILABLE_AGENT_IN_CELL
@@ -118,8 +123,9 @@ class RiotModel(Model):
                         p=np.array([INITIAL_PROB_OF_BASE, INITIAL_PROB_OF_RIOT]),
                     ),
                 )
+                self.entered_home_fan_counter += 1
             self._spread_fans(team=True)
-        while np.sum(self.away_team_map) < INITIAL_ROUND_OF_ENTRY_AWAY:
+        while self.entered_away_fan_counter < INITIAL_ROUND_OF_ENTRY_AWAY:
             while (
                 len(self.grid.get_cell_list_contents([self.entry_point_away]))
                 < MAX_AVAILABLE_AGENT_IN_CELL
@@ -132,21 +138,22 @@ class RiotModel(Model):
                         p=np.array([INITIAL_PROB_OF_BASE, INITIAL_PROB_OF_RIOT]),
                     ),
                 )
+                self.entered_away_fan_counter += 1
             self._spread_fans(team=False)
 
     def _add_agent_to_maps(self, pos: tuple[int, int], team: bool, state: str) -> None:
         """Adds the agent to the team and state maps."""
         team_map = getattr(self, f"{'home' if team else 'away'}_team_map")
         state_map = getattr(self, f"{state}_state_map")
-        team_map[pos] += 1
-        state_map[pos] += 1
+        team_map[pos[::-1]] += 1
+        state_map[pos[::-1]] += 1
 
     def _remove_agent_from_maps(self, pos: tuple[int, int], team: bool, state: str) -> None:
         """Removes the agent from the team and state maps."""
-        team_map = getattr(self, f"{team}_team_map")
+        team_map = getattr(self, f"{'home' if team else 'away'}_team_map")
         state_map = getattr(self, f"{state}_state_map")
-        team_map[pos] -= 1
-        state_map[pos] -= 1
+        team_map[pos[::-1]] -= 1
+        state_map[pos[::-1]] -= 1
 
     def _spread_fans(self, team: bool) -> None:
         """Distributes the agents during the initialization of the model."""
@@ -155,7 +162,7 @@ class RiotModel(Model):
 
         agents_by_row = defaultdict(list)
         for agent in agents_to_move:
-            agents_by_row[agent.pos[0]].append(agent)
+            agents_by_row[agent.pos[1]].append(agent)
 
         for row in sorted(list(agents_by_row.keys()), reverse=True):
             for agent in agents_by_row[row]:
@@ -163,7 +170,7 @@ class RiotModel(Model):
 
 
 if __name__ == "__main__":
-    agent_data, control_data = RiotModel.run_riot_model(100, 200, (0, 10), (0, 90), 1000)
+    agent_data, control_data = RiotModel.run_riot_model(100, 200, (10, 0), (90, 0), 1000)
 
     agent_data.plot()
     plt.show()
