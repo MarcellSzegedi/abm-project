@@ -21,6 +21,7 @@ from abm.base_version.utils.global_model_parameters import (
     INITIAL_ROUND_OF_ENTRY_HOME,
     MAX_AVAILABLE_AGENT_IN_CELL,
 )
+from abm.base_version.utils.util_func import count_agents_in_state, count_agents_in_team
 
 
 class RiotModel(Model):
@@ -34,29 +35,33 @@ class RiotModel(Model):
         entry_point_away: tuple[int, int],
         city_map: npt.NDArray[np.bool] | None = None,
     ) -> None:
+        """Initializes the Riot model."""
         super().__init__()
 
         self.scheduler = RandomActivation(self)
 
         self.grid = MultiGrid(width=width, height=height, torus=False)
-        self.city_map = city_map if city_map is not None else np.ones((height, width), dtype=np.bool)
-        self.base_state_map = np.zeros(shape=(height, width))
-        self.riot_state_map = np.zeros(shape=(height, width))
-        self.injured_state_map = np.zeros(shape=(height, width))
-        self.home_team_map = np.zeros(shape=(height, width))
-        self.away_team_map = np.zeros(shape=(height, width))
+        self.city_map = (
+            city_map if city_map is not None else np.ones((height, width), dtype=np.bool)
+        )
+        self.home_riot_map = np.zeros(shape=(height, width))
+        self.away_riot_map = np.zeros(shape=(height, width))
+
         self.entry_point_home = entry_point_home  # (col, row) format
         self.entry_point_away = entry_point_away  # (col, row) format
 
         self.agent_state_datacollector = DataCollector(
             {
-                "Base": lambda m: np.sum(m.base_state_map),
-                "Riot": lambda m: np.sum(m.riot_state_map),
-                "Injured": lambda m: np.sum(m.injured_state_map),
+                "Bystander": lambda m: count_agents_in_state(m, "bystander"),
+                "Rioter": lambda m: count_agents_in_state(m, "rioter"),
+                "Injured": lambda m: count_agents_in_state(m, "injured"),
             }
         )
         self.control_team_fan_counter = DataCollector(
-            {"Home": lambda m: np.sum(m.home_team_map), "Away": lambda m: np.sum(m.away_team_map)}
+            {
+                "Home": lambda m: count_agents_in_team(m, True),
+                "Away": lambda m: count_agents_in_team(m, False),
+            }
         )
 
         self.entered_home_fan_counter = 0
@@ -100,11 +105,11 @@ class RiotModel(Model):
         agent = FanAgent(pos=pos, unique_id=self.next_id(), team=team, state=state, model=self)
         self.grid.place_agent(agent, pos)
         self.scheduler.add(agent)
-        self._add_agent_to_maps(pos=pos, team=team, state=state)
+        self.add_agent_to_utility_maps(agent)
 
     def remove_agent(self, agent: FanAgent) -> None:
         """Removes the agent from the model."""
-        self._remove_agent_from_maps(pos=agent.pos, team=agent.team, state=agent.state)
+        self.remove_agent_from_utility_maps(agent)
         self.grid.remove_agent(agent)
         self.scheduler.remove(agent)
 
@@ -119,7 +124,7 @@ class RiotModel(Model):
                     pos=self.entry_point_home,
                     team=True,
                     state=np.random.choice(
-                        np.array(["base", "riot"]),
+                        np.array(["bystander", "rioter"]),
                         p=np.array([INITIAL_PROB_OF_BASE, INITIAL_PROB_OF_RIOT]),
                     ),
                 )
@@ -134,26 +139,24 @@ class RiotModel(Model):
                     pos=self.entry_point_away,
                     team=False,
                     state=np.random.choice(
-                        np.array(["base", "riot"]),
+                        np.array(["bystander", "rioter"]),
                         p=np.array([INITIAL_PROB_OF_BASE, INITIAL_PROB_OF_RIOT]),
                     ),
                 )
                 self.entered_away_fan_counter += 1
             self._spread_fans(team=False)
 
-    def _add_agent_to_maps(self, pos: tuple[int, int], team: bool, state: str) -> None:
-        """Adds the agent to the team and state maps."""
-        team_map = getattr(self, f"{'home' if team else 'away'}_team_map")
-        state_map = getattr(self, f"{state}_state_map")
-        team_map[pos[::-1]] += 1
-        state_map[pos[::-1]] += 1
+    def remove_agent_from_utility_maps(self, agent: FanAgent) -> None:
+        """Removes the agent from the corresponding utility maps."""
+        if agent.state == "rioter":
+            riot_map = getattr(self, f"{'home' if agent.team else 'away'}_riot_map")
+            riot_map[agent.pos[::-1]] -= 1
 
-    def _remove_agent_from_maps(self, pos: tuple[int, int], team: bool, state: str) -> None:
-        """Removes the agent from the team and state maps."""
-        team_map = getattr(self, f"{'home' if team else 'away'}_team_map")
-        state_map = getattr(self, f"{state}_state_map")
-        team_map[pos[::-1]] -= 1
-        state_map[pos[::-1]] -= 1
+    def add_agent_to_utility_maps(self, agent: FanAgent) -> None:
+        """Adds the agent to the corresponding utility maps."""
+        if agent.state == "rioter":
+            riot_map = getattr(self, f"{'home' if agent.team else 'away'}_riot_map")
+            riot_map[agent.pos[::-1]] += 1
 
     def _spread_fans(self, team: bool) -> None:
         """Distributes the agents during the initialization of the model."""
