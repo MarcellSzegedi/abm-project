@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from abm.base_version.model import RiotModel
+    from abm.model import RiotModel
 
 
 def count_agents_in_state(model: "RiotModel", target_state: str) -> int:

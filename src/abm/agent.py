@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 from mesa import Agent
 
-from abm.base_version.utils.global_model_parameters import (
+from abm.utils.global_model_parameters import (
     INJURY_MINIMUM_AGENT_THD,
     MAX_AVAILABLE_AGENT_IN_CELL,
     MAX_INJURY_PROB,
@@ -15,7 +15,7 @@ from abm.base_version.utils.global_model_parameters import (
 )
 
 if TYPE_CHECKING:
-    from abm.base_version.model import RiotModel
+    from abm.model import RiotModel
 
 
 class FanAgent(Agent):

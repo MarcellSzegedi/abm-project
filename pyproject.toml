@@ -13,6 +13,7 @@ dependencies = [
     "numpy>=2.2.6",
     "pandas-stubs>=2.2.3.250527",
     "pytest>=8.4.0",
+    "ruff>=0.12.0",
     "scipy>=1.15.3",
     "typer>=0.16.0",
     "types-tqdm>=4.67.0.20250516",

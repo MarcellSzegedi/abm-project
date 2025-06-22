@@ -13,15 +13,15 @@ from mesa.space import MultiGrid
 from mesa.time import RandomActivation
 from tqdm import trange
 
-from abm.base_version.agent import FanAgent
-from abm.base_version.utils.global_model_parameters import (
+from abm.agent import FanAgent
+from abm.utils.global_model_parameters import (
     INITIAL_PROB_OF_BASE,
     INITIAL_PROB_OF_RIOT,
     INITIAL_ROUND_OF_ENTRY_AWAY,
     INITIAL_ROUND_OF_ENTRY_HOME,
     MAX_AVAILABLE_AGENT_IN_CELL,
 )
-from abm.base_version.utils.util_func import count_agents_in_state, count_agents_in_team
+from abm.utils.util_func import count_agents_in_state, count_agents_in_team
 
 
 class RiotModel(Model):
