@@ -17,6 +17,7 @@ dependencies = [
     "scipy>=1.15.3",
     "typer>=0.16.0",
     "types-tqdm>=4.67.0.20250516",
+    "SALib>=1.4.7"
 ]
 
 [project.scripts]
