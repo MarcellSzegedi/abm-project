@@ -1,5 +1,15 @@
 """Global constants, parameters, etc."""
 
+from typing import TypedDict
+
+
+class MovementArgs(TypedDict):
+    """Arguments for the function that decides whether a bystander agent can move to a cell."""
+
+    row_to_check: str
+    only_opp_rioter: bool
+
+
 MAX_AVAILABLE_AGENT_IN_CELL = 5
 
 MIN_PROB_OF_TRANS_TO_BASE = 0.01
@@ -18,7 +28,7 @@ MAX_INJURY_PROB = 0.3
 
 ROW_MASKS = {"bot": [6, 7, 8], "mid": [3, 4, 5], "top": [0, 1, 2]}
 
-MOVEMENT_ARGUMENT = [
+MOVEMENT_ARGUMENTS: list[MovementArgs] = [
     {"row_to_check": "bot", "only_opp_rioter": False},
     {"row_to_check": "mid", "only_opp_rioter": False},
     {"row_to_check": "top", "only_opp_rioter": False},

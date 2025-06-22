@@ -10,7 +10,7 @@ from abm.base_version.utils.global_model_parameters import (
     INJURY_MINIMUM_AGENT_THD,
     MAX_AVAILABLE_AGENT_IN_CELL,
     MAX_INJURY_PROB,
-    MOVEMENT_ARGUMENT,
+    MOVEMENT_ARGUMENTS,
     ROW_FILTERING_CONDITIONS,
 )
 
@@ -139,8 +139,13 @@ class FanAgent(Agent):
     def _move_bystander(self, rows: tuple[int], cols: tuple[int]) -> None:
         """Moves the agent to a Moore neighbourhood, given its state is bystander."""
         if self.pos[1] != self.model.city_map.shape[0] - 1:
-            for kwargs in MOVEMENT_ARGUMENT:
-                row_coords, col_coords = self._check_row_for_rioters(rows, cols, **kwargs)
+            for mov_arg in MOVEMENT_ARGUMENTS:
+                row_coords, col_coords = self._check_row_for_rioters(
+                    rows,
+                    cols,
+                    row_to_check=mov_arg["row_to_check"],
+                    only_opp_rioter=mov_arg["only_opp_rioter"],
+                )
                 if len(row_coords) > 0:
                     chosen_idx = np.random.choice(range(len(row_coords)))
                     self._execute_agent_movement(
