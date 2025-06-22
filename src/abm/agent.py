@@ -78,7 +78,7 @@ class FanAgent(Agent):
 
     def _set_bystander_state(self, rows: tuple[int], cols: tuple[int]) -> None:
         """Sets the new state, given the current state of the agent is bystander."""
-        if not self._check_injury(rows, cols):
+        if not self._check_injury():
             own_team_rioters = getattr(self.model, f"{'home' if self.team else 'away'}_riot_map")[
                 rows, cols
             ]
@@ -91,7 +91,7 @@ class FanAgent(Agent):
 
     def _set_rioter_state(self, rows: tuple[int], cols: tuple[int]) -> None:
         """Sets the new state, given the current state of the agent is rioter."""
-        if not self._check_injury(rows, cols):
+        if not self._check_injury():
             if (
                 np.sum(self.model.home_riot_map[rows, cols])
                 + np.sum(self.model.away_riot_map[rows, cols])
@@ -100,39 +100,36 @@ class FanAgent(Agent):
                 self.state = "bystander"
                 self.model.remove_agent_from_utility_maps(agent=self)
 
-    def _check_injury(self, rows: tuple[int], cols: tuple[int]) -> bool:
+    def _check_injury(self) -> bool:
         """Checks if the agent is going ot be injured."""
-        if self._check_injury_potential(rows, cols):
-            prob_to_be_injured = self._injury_prob_calc(rows, cols)
+        if self._check_injury_potential():
+            prob_to_be_injured = self._injury_prob_calc()
             if random.random() < prob_to_be_injured:
                 self.state = "injured"
                 return True
         return False
 
-    def _check_injury_potential(self, rows: tuple[int], cols: tuple[int]) -> bool:
+    def _check_injury_potential(self) -> bool:
         """Checks whether the agent's current position allows it to be injured.
 
         The conditions need to be held are the following:
         - The number of agents (including the agent in consideration) be larger or equal than the
             THD.
-        - At least one agent in the same position must be a rioter.
+        """
+        return len(self.model.grid.get_cell_list_contents([self.pos])) > INJURY_MINIMUM_AGENT_THD
+
+    def _injury_prob_calc(self) -> float:
+        """Calculated the probability of an agent being injured.
+
+        The probability increases with the number of rioters in the cell, and is capped at a
+            maximum value.
         """
         return (
-            len(self.model.grid.get_cell_list_contents([self.pos])) > INJURY_MINIMUM_AGENT_THD
-        ) & (
-            np.sum(self.model.home_riot_map[rows, cols])
-            + np.sum(self.model.away_riot_map[rows, cols])
-            > 0
-        )
-
-    def _injury_prob_calc(self, rows: tuple[int], cols: tuple[int]) -> float:
-        """Calculated the probability of an agent being injured."""
-        return (
             (
-                np.sum(self.model.home_riot_map[rows, cols])
-                + np.sum(self.model.away_riot_map[rows, cols])
+                np.sum(self.model.home_riot_map[self.pos[1], self.pos[0]])
+                + np.sum(self.model.away_riot_map[self.pos[1], self.pos[0]])
             )
-            / (9 * MAX_AVAILABLE_AGENT_IN_CELL)
+            / MAX_AVAILABLE_AGENT_IN_CELL
             * MAX_INJURY_PROB
         )
 
