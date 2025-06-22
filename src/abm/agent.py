@@ -189,9 +189,15 @@ class FanAgent(Agent):
                 np.where(own_team_rioters == np.max(own_team_rioters))[0]
             )
         else:
-            chosen_coord_idx = random.choice(
-                np.where(opp_team_rioters == np.min(opp_team_rioters))[0]
-            )
+            # If there is at least one opposite team rioter, move towards the one with the least
+            # number of rioters in the cell. If there are no opposite team rioters, move randomly
+            nonzero_opposite_rioters = opp_team_rioters[np.nonzero(opp_team_rioters)]
+            if len(nonzero_opposite_rioters) > 0:
+                chosen_coord_idx = random.choice(
+                    np.where(opp_team_rioters == np.min(nonzero_opposite_rioters))[0]
+                )
+            else:
+                chosen_coord_idx = random.choice(np.where(opp_team_rioters == 0)[0])
 
         chosen_row, chosen_col = rows[chosen_coord_idx], cols[chosen_coord_idx]
         self._execute_agent_movement(new_pos=(chosen_col, chosen_row))
