@@ -90,7 +90,12 @@ class FanAgent(Agent):
                 self.model.add_agent_to_utility_maps(agent=self)
 
     def _set_rioter_state(self, rows: tuple[int], cols: tuple[int]) -> None:
-        """Sets the new state, given the current state of the agent is rioter."""
+        """Sets the new state, given the current state of the agent is rioter.
+
+        The agent becomes a bystander if there are no other rioters around, i.e. the current agent
+            is the only rioter in the Moore nbhood <=> there is only one rioting agent in the Moore
+            nbhood.
+        """
         if not self._check_injury():
             if (
                 np.sum(self.model.home_riot_map[rows, cols])
