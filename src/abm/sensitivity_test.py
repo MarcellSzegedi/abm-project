@@ -149,14 +149,19 @@ class SensitivityTests:
             width=bar_width, 
             label='First-Order', 
             color='blue',
+            edgecolor='black',
+            linewidth=1,
             alpha=0.7
             )
+        
         plt.bar(
             x + bar_width/2, 
             total_order, 
             width=bar_width, 
             label='Total-Order', 
-            color='green',
+            color='purple',
+            edgecolor='black',
+            linewidth=1,
             alpha=0.7
             ) 
 
@@ -184,9 +189,9 @@ class SensitivityTests:
             plt.annotate(param, (morris_df["Mu*"].iloc[i], morris_df["Sigma"].iloc[i]),
                          xytext=(5, 5), textcoords='offset points', fontsize=9)
         
-        plt.xlabel('μ* (Parameter Importance)')
-        plt.ylabel('σ (Non-linearity or Interactions)')
-        plt.title('Morris Analysis: Parameter Screening')
+        plt.xlabel(r'$mu *$')
+        plt.ylabel(r'$sigma$')
+        plt.title('Morris Analysis')
         plt.grid(alpha=0.3)
 
         if save_path:
@@ -194,61 +199,7 @@ class SensitivityTests:
         
         plt.show()
 
-    # def plot_sensitivity(self, sobol_df: pd.DataFrame, morris_df: pd.DataFrame, save_path: str = None): 
-    #     """Plots the results of Sobol and Morris sensitivity analyses.
-        
-    #     :param sobol_df: DataFrame containing Sobol sensitivity indices.
-    #     :param morris_df: DataFrame containing Morris sensitivity indices.
-    #     :param save_path: Path to save the plot (optional).
-    #     """
-    #     _, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
-        
-    #     # Sobol sensitivity analysis bar plot
-    #     x = np.arange(len(sobol_df["Parameter"]))
-    #     bar_width = 0.35
-
-    #     first_order = sobol_df["First-Order"]
-    #     total_order = sobol_df["Total-Order"]
-
-    #     ax1.bar(
-    #         x - bar_width/2, 
-    #         first_order, 
-    #         width=bar_width, 
-    #         label='First-Order', 
-    #         color='blue',
-    #         alpha=0.7
-    #         )
-    #     ax1.bar(
-    #         x + bar_width/2, 
-    #         total_order, 
-    #         width=bar_width, 
-    #         label='Total-Order', 
-    #         color='green',
-    #         alpha=0.7
-    #         ) 
-
-    #     ax1.set_xlabel('Parameters')
-    #     ax1.set_ylabel('Sensitivity Index')
-    #     ax1.set_title('Sobol Sensitivity Analysis')
-    #     ax1.set_xticks(x)
-    #     ax1.set_xticklabels(sobol_df["Parameter"], rotation=45, ha='right')
-    #     ax1.legend()
-
-    #     # Morris sensitivity scatter plot
-    #     ax2.scatter(morris_df["Mu*"], morris_df["Sigma"], s=100, alpha=0.7, color='green')
-    #     for i, param in enumerate(morris_df["Parameter"]):
-    #         ax2.annotate(param, (morris_df["Mu_Star"].iloc[i], morris_df["Sigma"].iloc[i]),
-    #                     xytext=(5, 5), textcoords='offset points', fontsize=9)
-        
-    #     ax2.set_xlabel('μ* (Parameter Importance)')
-    #     ax2.set_ylabel('σ (Non-linearity or Interactions)')
-    #     ax2.set_title('Morris Analysis: Parameter Screening')
-    #     ax2.grid(alpha=0.3)
-
-    #     if save_path:
-    #         plt.savefig(save_path, bbox_inches='tight')
-
-    
+  
 
 if __name__ == "__main__":
     problem = {
