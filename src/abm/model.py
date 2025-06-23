@@ -33,7 +33,7 @@ class RiotModel(Model):
         height: int,
         entry_point_home: tuple[int, int],
         entry_point_away: tuple[int, int],
-        city_map: CityMap | None = None,
+        city_map: CityMap,
     ) -> None:
         """Initializes the Riot model."""
         super().__init__()
@@ -41,9 +41,7 @@ class RiotModel(Model):
         self.scheduler = RandomActivation(self)
 
         self.grid = MultiGrid(width=width, height=height, torus=False)
-        self.city_map = (
-            city_map.grid if city_map is not None else np.ones((height, width), dtype=np.bool)
-        )
+        self.city_map = city_map
         self.home_riot_map = np.zeros(shape=(height, width))
         self.away_riot_map = np.zeros(shape=(height, width))
 
@@ -77,7 +75,7 @@ class RiotModel(Model):
         entry_point_home: tuple[int, int],
         entry_point_away: tuple[int, int],
         n_step: int,
-        city_map: CityMap | None = None,
+        city_map: CityMap,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Runs the abm model."""
         riot_model = cls(width, height, entry_point_home, entry_point_away, city_map)
