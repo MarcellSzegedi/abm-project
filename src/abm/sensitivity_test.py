@@ -4,8 +4,9 @@ from typing import Callable
 
 import numpy as np
 import pandas as pd
+import concurrent.futures
 from SALib.analyze import morris, sobol
-from SALib.sample import morris as morris_sampling
+from SALib.sample import sobol as sobol_sampling, morris as morris_sampling
 from SALib.sample import saltelli
 
 from abm.model import RiotModel
@@ -25,62 +26,86 @@ class SensitivityTests:
     
     def __init__(
             self, 
-            steps: int, 
-            model_run: Callable, 
             problem: dict, 
-            num_samples: int = 256, 
-            city_map: CityMap = None
+            width: int = 100, 
+            height: int = 200,
+            steps: int = 50, 
+            num_samples: int = 1000, 
             ): 
         """Initializes the sensitivity test class."""
         self.steps = steps
-        self.model_run = model_run
-        self.problem = problem
         self.num_samples = num_samples
-        self.city_map = city_map 
+        self.problem = problem
+        self.width = width
+        self.height = height
+    
+    def _create_city_map(
+            self, 
+            n_streets: int, 
+            street_width: int, 
+            exit_space_height: int, 
+            entry_separation_ratio: float):
+        """Creates a city map for the Riot model."""
 
+        city_map = CityMap(
+            width=self.width,
+            height=self.height,
+            n_streets=n_streets,
+            street_width=street_width,
+            exit_space_height=exit_space_height
+        )
+
+        separation = int(self.width * entry_separation_ratio / 2)
+        entry_point_home = (separation, 0)
+        entry_point_away = (self.width - separation, 0)
+
+        return city_map, entry_point_home, entry_point_away
+        
     def evaluate_model(self, sample: np.ndarray) -> np.ndarray: 
         """Evaluates the model with a given sample of parameters.
         
-        Args:
-            sample (np.ndarray): Sample of parameters to evaluate final number of rioters.
-        
-        Returns:
-            np.ndarray: Array of final fractions of rioters after the simulation.
+        :param sample: A 2D numpy array where each row is a set of parameters to evaluate.
         """
         results = []
 
-        for x in sample:
-            (
-                params.INITIAL_PROB_OF_BASE,
-                params.INITIAL_PROB_OF_RIOT,
-                params.INITIAL_ROUND_OF_ENTRY_HOME,
-                params.INITIAL_ROUND_OF_ENTRY_AWAY,
-            ) = x # Sets global parameter values based on sample drawn.
-            #TODO: Continue with remaining parameters regarding urban design.
+        for params_vector in sample:
+            riot_prob = params_vector[0]
+            n_streets = int(params_vector[1])
+            street_width = int(params_vector[2])
+            exit_space_height = int(params_vector[3])
+            entry_separation = params_vector[4]
 
-            agent_state, _ = self.model_run(
-                width=100,
-                height=200,
-                entry_point_home=(10, 0),
-                entry_point_away=(90, 0),
-                n_step=self.steps
-            ) # Runs the model with the given parameters.
-            #TODO: Add these to global params as to not hardcode? 
+            params.INITIAL_PROB_OF_BASE = 1.0 - riot_prob 
+            params.INITIAL_PROB_OF_RIOT = riot_prob
 
-            final_rioters = agent_state["Rioter"].iloc[-1] 
-            total = agent_state.iloc[-1].sum()
-            results.append(final_rioters / total if total else 0)
+            city_map, entry_home, entry_away = self._create_city_map(
+                    n_streets, street_width, exit_space_height, entry_separation
+                )
+            
+            agent_data, _ = RiotModel.run_riot_model(
+                    width=self.width,
+                    height=self.height,
+                    entry_point_home=entry_home,
+                    entry_point_away=entry_away,
+                    n_step=self.steps,
+                    city_map=city_map
+                )
+            
+            final_rioters = agent_data["Rioter"].iloc[-1]
+            total_agents = agent_data.iloc[-1].sum()
+            riot_fraction = final_rioters / total_agents if total_agents > 0 else 0
+            
+            results.append(riot_fraction)
 
         return np.array(results)
 
     def sobol_sensitivity_test(self) -> dict:
         """Performs Sobol sensitivity analysis on the model.
         
-        Returns:
-            dict: Sobol sensitivity indices (first-order, total-order, etc.)
+        :returns dict: Sobol sensitivity indices (S1, ST, etc.) for each parameter.
         """
-        test_values = saltelli.sample(self.problem, self.num_samples)
-        sample_riot_fractions = self.evaluate_model(test_values)
+        sample_parameters = morris_sampling.sample(self.problem, self.num_samples)
+        sample_riot_fractions = self.evaluate_model(sample_parameters)
         sobol_results = sobol.analyze(self.problem, sample_riot_fractions)
 
         return pd.DataFrame({
@@ -93,13 +118,12 @@ class SensitivityTests:
     
     def morris_sensitivity_test(self) -> dict:
         """Performs Morris sensitivity analysis on the model.
-        
-        Returns:
-            dict: Morris sensitivity indices (mu, mu_star, etc.)
+
+        :returns dict: Morris sensitivity indices (Mu, Mu*, Sigma) for each parameter.
         """
-        test_values = morris_sampling.sample(self.problem, self.num_samples)
-        sample_riot_fractions = self.evaluate_model(test_values)
-        morris_results = morris.analyze(self.problem, test_values, sample_riot_fractions)
+        sample_parameters = morris_sampling.sample(self.problem, self.num_samples)
+        sample_riot_fractions = self.evaluate_model(sample_parameters)
+        morris_results = morris.analyze(self.problem, sample_parameters, sample_riot_fractions)
 
         return pd.DataFrame({
             "Parameter": self.problem["names"],
@@ -107,94 +131,32 @@ class SensitivityTests:
             "Mu*": morris_results["mu_star"],
             "Sigma": morris_results["sigma"],
             })
-
     
-    # def ofat_sensitivity_test(self, perturbations: list[float]) -> pd.DataFrame: 
-    #     """Performs One Factor At a Time (OFAT) sensitivity analysis on the model.
-        
-    #     Returns:
-    #         dict: Results of the OFAT sensitivity analysis.
-    #     """
-    #     results = []
-    #     param_names = self.problem["names"]
-    #     base_sample = np.array([
-    #         [
-    #             params.INITIAL_PROB_OF_BASE,
-    #             params.INITIAL_PROB_OF_RIOT,
-    #             params.INITIAL_ROUND_OF_ENTRY_HOME,
-    #             params.INITIAL_ROUND_OF_ENTRY_AWAY
-    #         ]
-    #     ])
-    #     baseline_output = self.evaluate_model(base_sample)[0]
-
-    #     for i, param in enumerate(param_names):
-    #         for delta in perturbations:
-    #             perturbed_sample = base_sample.copy()
-    #             perturbed_sample[0, i] += delta  # apply perturbation to only one parameter
-
-    #             # Evaluate model
-    #             output = self.evaluate_model(perturbed_sample)[0]
-
-    #             results.append({
-    #                 "parameter": param,
-    #                 "perturbation": delta,
-    #                 "fraction_rioters": output,
-    #                 "baseline_fraction_rioters": baseline_output,
-    #                 "difference": output - baseline_output
-    #             })
-
-    #     return pd.DataFrame(results)
-    
-
-    # def plot_ofat_results(self, ofat_df: pd.DataFrame) -> None:
-    #     """Plots the results of the OFAT sensitivity analysis.
-        
-    #     Args:
-    #         ofat_df (pd.DataFrame): DataFrame containing OFAT results.
-
-    #     THIS WILL GO TO THE CLI EVENTUALLY, BUT FOR NOW IT IS HERE FOR TESTING
-    #     """
-
-    #     fig, ax = plt.subplots(figsize=(10, 6))
-
-    #     for param in ofat_df["parameter"].unique():
-    #         subset = ofat_df[ofat_df["parameter"] == param]
-    #         ax.plot(subset["perturbation"], subset["fraction_rioters"], label=param, marker="o")
-
-    #     ax.set_xlabel("Perturbation")
-    #     ax.set_ylabel("Fraction of Rioters")
-    #     ax.set_title("OFAT Sensitivity Analysis")
-    #     ax.legend()
-    #     plt.grid(True)
-    #     plt.tight_layout()
-    #     plt.show()
 
 if __name__ == "__main__":
-    model = RiotModel(width=100,
-                    height=200,
-                    entry_point_home=(10, 0),
-                    entry_point_away=(90, 0), 
-                    city_map=CityMap())
-
-    steps = 1000
     problem = {
-        "num_vars": 4,
-        "names": [
-            "INITIAL_PROB_OF_BASE", 
-            "INITIAL_PROB_OF_RIOT", 
-            "INITIAL_ROUND_OF_ENTRY_HOME", 
-            "INITIAL_ROUND_OF_ENTRY_AWAY"
+            "num_vars": 5,
+            "names": [
+                "INITIAL_PROB_OF_RIOT",      # Key agent parameter
+                "n_streets",                 # Urban: Number of streets
+                "street_width",              # Urban: Street width
+                "exit_space_height",         # Urban: Exit space size
+                "entry_separation_ratio"     # Urban: How far apart entry points are
             ],
-        "bounds": [[0, 1], [0, 1], [1000, 10000], [1000, 10000]]
-    }
+            "bounds": [
+                [0.05, 0.5],    # Riot probability (5% to 50%)
+                [2, 6],         # Number of streets 
+                [5, 15],        # Street width (in cells)
+                [5, 20],        # Exit space height (in cells)
+                [0.4, 0.8]      # Entry separation (40-80% of width apart)
+            ]
+        }
 
-    sensitivity_test = SensitivityTests(steps, model.run_riot_model, problem, city_map=CityMap())
-    sobol_df = sensitivity_test.sobol_sensitivity_test()
+    sensitivity_test = SensitivityTests(problem)
+    # sobol_df = sensitivity_test.sobol_sensitivity_test()
     morris_df = sensitivity_test.morris_sensitivity_test()
+    print(morris_df)
 
-    # pertubations = np.linspace(-0.1, 0.1, 20) 
-    # ofat_df = sensitivity_test.ofat_sensitivity_test(pertubations)
-    # sensitivity_test.plot_ofat_results(ofat_df)
 
 
 
