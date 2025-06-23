@@ -82,19 +82,6 @@ class RiotModel(Model):
         riot_model = cls(width, height, entry_point_home, entry_point_away)
         riot_model._init_population()
 
-        # home_riot_map = getattr(riot_model, "away_riot_map")
-        # plt.figure(figsize=(8, 8))
-        # plt.imshow(home_riot_map, cmap="Greys", origin="upper")
-        # plt.title("City Grid")
-        # plt.xlabel("Columns")
-        # plt.ylabel("Rows")
-        # plt.colorbar(label="Cell Value")
-        # plt.show()
-
-        # Collect initial data
-        riot_model.agent_state_datacollector.collect(riot_model)
-        riot_model.control_team_fan_counter.collect(riot_model)
-
         for _ in trange(n_step):
             riot_model.step()
 
