@@ -49,13 +49,8 @@ class FanAgent(Agent):
             self._add_agent_state_to_map()
             self._add_agent_team_to_map()
 
-    def spread_init_agents(self) -> None:
-        available_cells_to_move = self._find_possible_n_available_cells()
-        self._set_agent_state(available_cells_to_move)
-        self._move_agent(available_cells_to_move)
-
     def step(self, is_init: bool = False) -> None:
-        """Executes events during an agent's step."""
+        """Executes events during an agent's step during initialization or a normal step """
         if is_init or self.state != "injured":
             available_cells_to_move = self._find_possible_n_available_cells()
             self._set_agent_state(available_cells_to_move)
@@ -78,7 +73,7 @@ class FanAgent(Agent):
                             self.pos,
                             available_cells_to_move,
                             n_same_team_agents,
-                            len(available_cells_to_move),
+                            len(available_cells_to_move)
                         )
 
                         if np.all(rel_probs_of_available_cells == 0.0):
@@ -104,7 +99,7 @@ class FanAgent(Agent):
                                     available_cells_to_move,
                                     weights=rel_probs_of_available_cells
                                     / np.sum(rel_probs_of_available_cells),
-                                    k=1,
+                                    k=1
                                 )[0],
                             )
 
@@ -119,7 +114,7 @@ class FanAgent(Agent):
                             self.pos,
                             available_cells_to_move,
                             n_riot_agents,
-                            len(available_cells_to_move),
+                            len(available_cells_to_move)
                         )
 
                         if np.all(rel_probs_of_available_cells == 0.0):
@@ -144,8 +139,8 @@ class FanAgent(Agent):
                                 pos=random.choices(
                                     available_cells_to_move,
                                     weights=rel_probs_of_available_cells
-                                    / np.sum(rel_probs_of_available_cells),
-                                    k=1,
+                                            / np.sum(rel_probs_of_available_cells),
+                                    k=1
                                 )[0],
                             )
 
