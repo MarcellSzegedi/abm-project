@@ -1,12 +1,13 @@
 """Module for performing sensitivity tests on the Riot model."""
 
 
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import os 
 from SALib.analyze import morris, sobol
-from SALib.sample import morris as morris_sample, saltelli
+from SALib.sample import morris as morris_sample
+from SALib.sample import saltelli
 
 from abm.city_map import CityMap
 from abm.model import RiotModel
@@ -37,6 +38,7 @@ class SensitivityTests:
         self.problem = problem
         self.width = width
         self.height = height
+        self.sobol_matrix = None
     
     def _create_city_map(
             self, 
@@ -105,6 +107,7 @@ class SensitivityTests:
         sample_parameters = saltelli.sample(self.problem, self.num_samples)
         sample_riot_fractions = self.evaluate_model(sample_parameters)
         sobol_results = sobol.analyze(self.problem, sample_riot_fractions)
+        self.sobol_matrix = sobol_results["S2"]
 
         return pd.DataFrame({
             "Parameter": self.problem["names"],
@@ -176,13 +179,31 @@ class SensitivityTests:
         
         plt.show()
     
+    def plot_parameter_interactions(self, sobol_matrix: np.ndarray, parameter_names: list, save_path: str = None):
+        """Plots a heatmap of second-order (interaction) Sobol sensitivity indices."""
+        plt.figure(figsize=(8, 6))
+        
+        sobol_matrix = np.nan_to_num(sobol_matrix)
+
+        im = plt.imshow(sobol_matrix, cmap="viridis", interpolation='nearest')
+
+        plt.colorbar(im, label="Second-Order Index (S2)")
+        plt.xticks(ticks=np.arange(len(parameter_names)), labels=parameter_names, rotation=45, ha='right')
+        plt.yticks(ticks=np.arange(len(parameter_names)), labels=parameter_names)
+        plt.title("Sobol Second-Order Interaction Heatmap")
+        plt.tight_layout()
+
+        if save_path:
+            plt.savefig(f"results/{save_path}")
+        plt.show()
+    
     def plot_morris_analysis(self, morris_df: pd.DataFrame, save_path: str = None):
         """Plots the Morris sensitivity analysis results.
         
         :param morris_df: DataFrame containing Morris sensitivity indices.
         :param save_path: Path to save the plot (optional).
         """
-        plt.figure(figsize=(10, 6))
+        plt.figure(figsize=(10, 5))
         plt.scatter(morris_df["Mu*"], morris_df["Sigma"], s=100, alpha=0.7, color='green')
         
         for i, param in enumerate(morris_df["Parameter"]):
@@ -205,7 +226,7 @@ if __name__ == "__main__":
     problem = {
             "num_vars": 5,
             "names": [
-                "INITIAL_PROB_OF_RIOT",      # Key agent parameter
+                "INITIAL_PROB_OF_RIOT",      # Agent: Initial probability of riot
                 "n_streets",                 # Urban: Number of streets
                 "street_width",              # Urban: Street width
                 "exit_space_height",         # Urban: Exit space size
@@ -222,7 +243,17 @@ if __name__ == "__main__":
     
     sensitivity_test = SensitivityTests(problem)
     sobol_df = sensitivity_test.sobol_sensitivity_test()
-    sensitivity_test.plot_sobol_indices(sobol_df, save_path="sobol_sensitivity_analysis.png")
+
+    sensitivity_test.plot_sobol_indices(
+        sobol_df, 
+        save_path="sobol_sensitivity_analysis.png"
+        )
+
+    sensitivity_test.plot_parameter_interactions(
+        sensitivity_test.sobol_matrix, 
+        problem["names"], 
+        save_path="sobol_interaction_heatmap.png"
+        )
 
 
 
