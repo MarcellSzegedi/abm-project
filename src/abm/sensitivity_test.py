@@ -31,6 +31,7 @@ class SensitivityTests:
             np.ndarray: Array of final fractions of rioters after the simulation.
         """
         results = []
+
         for x in sample:
             (
                 params.INITIAL_PROB_OF_BASE,
@@ -63,7 +64,15 @@ class SensitivityTests:
         """
         test_values = saltelli.sample(self.problem, self.num_samples)
         sample_riot_fractions = self.evaluate_model(test_values)
-        return sobol.analyze(self.problem, sample_riot_fractions)
+        sobol_results = sobol.analyze(self.problem, sample_riot_fractions)
+
+        return pd.DataFrame({
+            "Parameter": self.problem["names"],
+            "First-Order": sobol_results["S1"],
+            "Total-Order": sobol_results["ST"],
+            "First-Order Error": sobol_results["S1_conf"],
+            "Total-Order Error": sobol_results["ST_conf"],
+        })
     
     def morris_sensitivity_test(self) -> dict:
         """Performs Morris sensitivity analysis on the model.
@@ -73,51 +82,51 @@ class SensitivityTests:
         """
         test_values = morris_sampling.sample(self.problem, self.num_samples)
         sample_riot_fractions = self.evaluate_model(test_values)
-        return morris.analyze(self.problem, sample_riot_fractions)
+        morris_results = morris.analyze(self.problem, test_values, sample_riot_fractions)
+
+        return pd.DataFrame({
+            "Parameter": self.problem["names"],
+            "Mu": morris_results["mu"],
+            "Mu*": morris_results["mu_star"],
+            "Sigma": morris_results["sigma"],
+            })
+
     
-    def ofat_sensitivity_test(self, pertubations: list[float]) -> pd.DataFrame: 
+    def ofat_sensitivity_test(self, perturbations: list[float]) -> pd.DataFrame: 
         """Performs One Factor At a Time (OFAT) sensitivity analysis on the model.
         
         Returns:
             dict: Results of the OFAT sensitivity analysis.
         """
         results = []
-        initial_values = {
-            "INITIAL_PROB_OF_BASE": params.INITIAL_PROB_OF_BASE,
-            "INITIAL_PROB_OF_RIOT": params.INITIAL_PROB_OF_RIOT,
-            "INITIAL_ROUND_OF_ENTRY_HOME": params.INITIAL_ROUND_OF_ENTRY_HOME,
-            "INITIAL_ROUND_OF_ENTRY_AWAY": params.INITIAL_ROUND_OF_ENTRY_AWAY,
-        }
+        param_names = self.problem["names"]
+        base_sample = np.array([
+            [
+                params.INITIAL_PROB_OF_BASE,
+                params.INITIAL_PROB_OF_RIOT,
+                params.INITIAL_ROUND_OF_ENTRY_HOME,
+                params.INITIAL_ROUND_OF_ENTRY_AWAY
+            ]
+        ])
+        baseline_output = self.evaluate_model(base_sample)[0]
 
-        for delta in pertubations:
-            for param in initial_values.keys():
-                # Perturb the parameter
-                original_value = initial_values[param]
-                perturbed_value = original_value + delta
-                setattr(params, param, perturbed_value)
+        for i, param in enumerate(param_names):
+            for delta in perturbations:
+                perturbed_sample = base_sample.copy()
+                perturbed_sample[0, i] += delta  # apply perturbation to only one parameter
 
-                # Run the model
-                agent_state, _ = self.model_run(
-                    width=100,
-                    height=200,
-                    entry_point_home=(10, 0),
-                    entry_point_away=(90, 0),
-                    n_step=self.steps
-                )
-
-                final_rioters = agent_state["Rioter"].iloc[-1]
-                total = agent_state.iloc[-1].sum()
-                fraction_rioters = final_rioters / total if total else 0
+                # Evaluate model
+                output = self.evaluate_model(perturbed_sample)[0]
 
                 results.append({
                     "parameter": param,
                     "perturbation": delta,
-                    "fraction_rioters": fraction_rioters,
-                    "difference": fraction_rioters - (initial_values[param] / total if total else 0)
+                    "fraction_rioters": output,
+                    "baseline_fraction_rioters": baseline_output,
+                    "difference": output - baseline_output
                 })
 
-                # Reset the parameter to its original value
-                setattr(params, param, original_value)
+        return pd.DataFrame(results)
 
 if __name__ == "__main__":
     model = RiotModel(width=100,
@@ -125,7 +134,7 @@ if __name__ == "__main__":
                     entry_point_home=(10, 0),
                     entry_point_away=(90, 0))
 
-    steps = 1000 
+    steps = 10
     problem = {
         "num_vars": 4,
         "names": ["INITIAL_PROB_OF_BASE", "INITIAL_PROB_OF_RIOT", "INITIAL_ROUND_OF_ENTRY_HOME", "INITIAL_ROUND_OF_ENTRY_AWAY"],
@@ -133,14 +142,22 @@ if __name__ == "__main__":
     }
 
     sensitivity_test = SensitivityTests(steps, model.run_riot_model, problem)
-    sobol_results = sensitivity_test.sobol_sensitivity_test()
-    morris_results = sensitivity_test.morris_sensitivity_test()
+    # sobol_df = sensitivity_test.sobol_sensitivity_test()
+    # morris_df = sensitivity_test.morris_sensitivity_test()
     pertubations = np.linspace(-0.1, 0.1, 3)  # Example perturbations
-    ofat_results = sensitivity_test.ofat_sensitivity_test(pertubations)
+    ofat_df = sensitivity_test.ofat_sensitivity_test(pertubations)
+
+    # sobol_df.to_csv("sobol_results.csv", index=False)
+    # morris_df.to_csv("morris_results.csv", index=False)
+    ofat_df.to_csv("ofat_results.csv", index=False)
+
     
-    print("Sobol Results:", sobol_results)
-    print("Morris Results:", morris_results)
-    print("OFAT Results:", ofat_results)
+    # print("Sobol Results:", sobol_results)
+    # print("Morris Results:", morris_results)
+    # print("OFAT Results:", ofat_results)
+
+    # Questions for meeting: Sobol uses uses N*(num_vars + 2) samples, where N is the number of samples, do we allow this and run overnight, 
+    # or do we use a smaller number of samples? Or parallelise the model runss? 
 
 
 
