@@ -149,7 +149,7 @@ class FanAgent(Agent):
 
     def _move_bystander(self, rows: tuple[int], cols: tuple[int]) -> None:
         """Moves the agent to a Moore neighbourhood, given its state is bystander."""
-        if self.pos[1] != self.model.city_map.shape[0] - 1:
+        if self.pos[1] != self.model.city_map.height - 1:
             for mov_arg in MOVEMENT_ARGUMENTS:
                 row_coords, col_coords = self._check_row_for_rioters(
                     rows,
@@ -267,7 +267,7 @@ class FanAgent(Agent):
         all_neighbouring_cell = self.model.grid.get_neighborhood(
             pos=self.pos, moore=True, include_center=True
         )
-        return [cell for cell in all_neighbouring_cell if self.model.city_map[cell[::-1]]]
+        return [cell for cell in all_neighbouring_cell if self.model.city_map.grid[cell[::-1]]]
 
     def _find_available_downward_cells(self) -> list[tuple[int, int]]:
         """Finds all the moore neighbor cells, with higher row coordinate."""
