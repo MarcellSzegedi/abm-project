@@ -39,7 +39,7 @@ class FanAgent(Agent):
 
     def step(self) -> None:
         """Executes events during an agent's step."""
-        if not self.state == "injured":
+        if self.state != "injured":
             available_cells_to_move = self._find_possible_n_available_cells()
             self._set_agent_state(available_cells_to_move)
             self._move_agent(available_cells_to_move)

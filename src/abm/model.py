@@ -115,11 +115,14 @@ class RiotModel(Model):
 
     def _init_population(self) -> None:
         """Initializes the population."""
+        c=0
         while self.entered_home_fan_counter < INITIAL_ROUND_OF_ENTRY_HOME:
+            c+=1
             while (
                 len(self.grid.get_cell_list_contents([self.entry_point_home]))
                 < MAX_AVAILABLE_AGENT_IN_CELL
             ):
+                print('Adding New agent')
                 self.add_agent(
                     pos=self.entry_point_home,
                     team=True,
@@ -130,6 +133,12 @@ class RiotModel(Model):
                 )
                 self.entered_home_fan_counter += 1
             self._spread_fans(team=True)
+            print(f"Total number of home fans that have entered the grid: {self.entered_home_fan_counter}")
+            injured_agents = [agent
+            for agent in self.grid.get_cell_list_contents([self.entry_point_home])
+            if agent.state == "injured"]
+            print(f"Number of injured agents at entry point home: {len(injured_agents)}")
+        print('Finished adding')
         while self.entered_away_fan_counter < INITIAL_ROUND_OF_ENTRY_AWAY:
             while (
                 len(self.grid.get_cell_list_contents([self.entry_point_away]))
@@ -160,7 +169,9 @@ class RiotModel(Model):
 
     def _spread_fans(self, team: bool) -> None:
         """Distributes the agents during the initialization of the model."""
-        agents_to_move = [agent for agent in self.scheduler.agents if agent.team == team]
+        agents_to_move = [agent for agent in self.scheduler.agents 
+                          if agent.team == team and agent.state != "injured"]
+        
         random.shuffle(agents_to_move)
 
         agents_by_row = defaultdict(list)
@@ -169,7 +180,7 @@ class RiotModel(Model):
 
         for row in sorted(list(agents_by_row.keys()), reverse=True):
             for agent in agents_by_row[row]:
-                agent.spread_agent()
+                agent.step()
 
 
 if __name__ == "__main__":
