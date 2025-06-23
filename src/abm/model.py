@@ -181,8 +181,8 @@ class RiotModel(Model):
 if __name__ == "__main__":
     width = 100
     height = 200
-    n_streets = 1
-    street_width = 100
+    n_streets = 5
+    street_width = 10
     exit_space_height = 10
     entry_point_home = (10, 0)
     entry_point_away = (90, 0)

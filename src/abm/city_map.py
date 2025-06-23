@@ -54,18 +54,13 @@ class CityMap:
         available_columns = self.width - total_street_width
         building_width = available_columns // (n_streets + 1)
         if building_width < 1 and n_streets > 1:
-            raise ValueError("Building width must be be at least 1.")
+            raise ValueError("Building width must be at least 1.")
 
-        # Create vertical streets
+        # Create vertical streets with spacing
         for i in range(n_streets):
             start_col = building_width * (i + 1) + i * street_width
             end_col = start_col + street_width
-
-            # Create vertical streets with spacing
-            for i in range(n_streets):
-                start_col = building_width * (i + 1) + i * street_width
-                end_col = start_col + street_width
-                self.grid[:, start_col:end_col] = True
+            self.grid[:, start_col:end_col] = True
 
     def display(self):
         """Display the grid as a heatmap using matplotlib."""
