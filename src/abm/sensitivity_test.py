@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import os 
 from SALib.analyze import morris, sobol
-from SALib.sample import morris, sobol
+from SALib.sample import morris as morris_sample, saltelli
 
 from abm.city_map import CityMap
 from abm.model import RiotModel
@@ -28,7 +28,7 @@ class SensitivityTests:
             problem: dict, 
             width: int = 100, 
             height: int = 200,
-            steps: int = 5, 
+            steps: int = 50, 
             num_samples: int = 2, 
             ): 
         """Initializes the sensitivity test class."""
@@ -102,7 +102,7 @@ class SensitivityTests:
         
         :returns dict: Sobol sensitivity indices (S1, ST, etc.) for each parameter.
         """
-        sample_parameters = sobol.sample(self.problem, self.num_samples)
+        sample_parameters = saltelli.sample(self.problem, self.num_samples)
         sample_riot_fractions = self.evaluate_model(sample_parameters)
         sobol_results = sobol.analyze(self.problem, sample_riot_fractions)
 
@@ -119,7 +119,7 @@ class SensitivityTests:
 
         :returns dict: Morris sensitivity indices (Mu, Mu*, Sigma) for each parameter.
         """
-        sample_parameters = morris.sample(self.problem, self.num_samples)
+        sample_parameters = morris_sample.sample(self.problem, self.num_samples)
         sample_riot_fractions = self.evaluate_model(sample_parameters)
         morris_results = morris.analyze(self.problem, sample_parameters, sample_riot_fractions)
 
@@ -130,7 +130,7 @@ class SensitivityTests:
             "Sigma": morris_results["sigma"],
             })
 
-    def plot_sensitivity(sobol_df: pd.DataFrame, morris_df: pd.DataFrame, save_path: str = None): 
+    def plot_sensitivity(self, sobol_df: pd.DataFrame, morris_df: pd.DataFrame, save_path: str = None): 
         """Plots the results of Sobol and Morris sensitivity analyses.
         
         :param sobol_df: DataFrame containing Sobol sensitivity indices.
@@ -212,6 +212,7 @@ if __name__ == "__main__":
     save_path = "results/sensitivity_analysis"
     if not os.path.exists(save_path):
         os.makedirs(save_path)
+
     SensitivityTests.plot_sensitivity(sobol_df, morris_df)
 
 
