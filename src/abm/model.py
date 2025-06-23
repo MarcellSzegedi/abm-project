@@ -81,6 +81,7 @@ class RiotModel(Model):
         """Runs the abm model."""
         riot_model = cls(width, height, entry_point_home, entry_point_away)
         riot_model._init_population()
+
         for _ in trange(n_step):
             riot_model.step()
 

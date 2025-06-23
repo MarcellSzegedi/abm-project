@@ -11,6 +11,7 @@ from abm.utils.global_model_parameters import (
     MAX_AVAILABLE_AGENT_IN_CELL,
     MAX_INJURY_PROB,
     MOVEMENT_ARGUMENTS,
+    RIOT_MINIMUM_AGENT_THD,
     ROW_FILTERING_CONDITIONS,
 )
 
@@ -40,9 +41,9 @@ class FanAgent(Agent):
     def step(self) -> None:
         """Executes events during an agent's step."""
         if not self.state == "injured":
-            available_cells_to_move = self._find_possible_n_available_cells()
-            self._set_agent_state(available_cells_to_move)
-            self._move_agent(available_cells_to_move)
+            accessible_nbhood_cells = self._get_accessible_nbhood()
+            self._set_agent_state(accessible_nbhood_cells)
+            self._move_agent(accessible_nbhood_cells)
 
     def spread_agent(self) -> None:
         """Moves a given agent to a cell in the moore neighborhood, towards the exit of the map."""
@@ -50,9 +51,9 @@ class FanAgent(Agent):
         if available_cells:
             self._execute_agent_movement(new_pos=random.choice(available_cells))
 
-    def _set_agent_state(self, available_cells: list[tuple[int, int]]) -> None:
+    def _set_agent_state(self, nbhood_cells: list[tuple[int, int]]) -> None:
         """Chooses and sets the new state of the agent."""
-        cols, rows = zip(*available_cells)
+        cols, rows = zip(*nbhood_cells)
         match self.state:
             case "bystander":
                 self._set_bystander_state(rows, cols)
@@ -61,37 +62,50 @@ class FanAgent(Agent):
             case _:
                 raise ValueError(f"Unknown state: {self.state}")
 
-    def _move_agent(self, potential_cell_to_move: list[tuple[int, int]]) -> None:
+    def _move_agent(self, accessible_nbhood_cells: list[tuple[int, int]]) -> None:
         """Moves the agent to a neighboring cell based on the agents in the vicinity."""
-        available_cells_to_move = self._find_cell_to_move(potential_cell_to_move)
+        available_cells_to_move = self._find_cell_to_move(accessible_nbhood_cells)
         if available_cells_to_move:
-            cols, rows = zip(*available_cells_to_move)
+            all_cols, all_rows = zip(*accessible_nbhood_cells)
+            available_cols, available_rows = zip(*available_cells_to_move)
             match self.state:
                 case "bystander":
-                    self._move_bystander(rows, cols)
+                    self._move_bystander(available_rows, available_cols)
                 case "rioter":
-                    self._move_rioter(rows, cols)
+                    self._move_rioter(all_rows, all_cols, available_rows, available_cols)
                 case "injured":
                     pass
                 case _:
                     raise ValueError(f"Unknown state: {self.state}")
 
     def _set_bystander_state(self, rows: tuple[int], cols: tuple[int]) -> None:
-        """Sets the new state, given the current state of the agent is bystander."""
-        if not self._check_injury(rows, cols):
+        """Sets the new state, given the current state of the agent is bystander.
+
+        First check whether agent got injured and if not, change its state.
+        The agent becomes a rioter and joins the riot if there are more rioters of the same team
+            in the Moore nbhood than there are rioters of the opposite team.
+        """
+        if not self._check_injury():
             own_team_rioters = getattr(self.model, f"{'home' if self.team else 'away'}_riot_map")[
                 rows, cols
             ]
             opp_team_rioters = getattr(
                 self.model, f"{'home' if not self.team else 'away'}_riot_map"
             )[rows, cols]
-            if np.sum(own_team_rioters) > np.sum(opp_team_rioters):
+            if (np.sum(own_team_rioters) > np.sum(opp_team_rioters)) and np.sum(
+                own_team_rioters
+            ) > RIOT_MINIMUM_AGENT_THD:
                 self.state = "rioter"
                 self.model.add_agent_to_utility_maps(agent=self)
 
     def _set_rioter_state(self, rows: tuple[int], cols: tuple[int]) -> None:
-        """Sets the new state, given the current state of the agent is rioter."""
-        if not self._check_injury(rows, cols):
+        """Sets the new state, given the current state of the agent is rioter.
+
+        The agent becomes a bystander if there are no other rioters around, i.e. the current agent
+            is the only rioter in the Moore nbhood <=> there is only one rioting agent in the Moore
+            nbhood.
+        """
+        if not self._check_injury():
             if (
                 np.sum(self.model.home_riot_map[rows, cols])
                 + np.sum(self.model.away_riot_map[rows, cols])
@@ -100,39 +114,36 @@ class FanAgent(Agent):
                 self.state = "bystander"
                 self.model.remove_agent_from_utility_maps(agent=self)
 
-    def _check_injury(self, rows: tuple[int], cols: tuple[int]) -> bool:
+    def _check_injury(self) -> bool:
         """Checks if the agent is going ot be injured."""
-        if self._check_injury_potential(rows, cols):
-            prob_to_be_injured = self._injury_prob_calc(rows, cols)
+        if self._check_injury_potential():
+            prob_to_be_injured = self._injury_prob_calc()
             if random.random() < prob_to_be_injured:
                 self.state = "injured"
                 return True
         return False
 
-    def _check_injury_potential(self, rows: tuple[int], cols: tuple[int]) -> bool:
+    def _check_injury_potential(self) -> bool:
         """Checks whether the agent's current position allows it to be injured.
 
         The conditions need to be held are the following:
         - The number of agents (including the agent in consideration) be larger or equal than the
             THD.
-        - At least one agent in the same position must be a rioter.
+        """
+        return len(self.model.grid.get_cell_list_contents([self.pos])) > INJURY_MINIMUM_AGENT_THD
+
+    def _injury_prob_calc(self) -> float:
+        """Calculated the probability of an agent being injured.
+
+        The probability increases with the number of rioters in the cell, and is capped at a
+            maximum value.
         """
         return (
-            len(self.model.grid.get_cell_list_contents([self.pos])) > INJURY_MINIMUM_AGENT_THD
-        ) & (
-            np.sum(self.model.home_riot_map[rows, cols])
-            + np.sum(self.model.away_riot_map[rows, cols])
-            > 0
-        )
-
-    def _injury_prob_calc(self, rows: tuple[int], cols: tuple[int]) -> float:
-        """Calculated the probability of an agent being injured."""
-        return (
             (
-                np.sum(self.model.home_riot_map[rows, cols])
-                + np.sum(self.model.away_riot_map[rows, cols])
+                np.sum(self.model.home_riot_map[self.pos[1], self.pos[0]])
+                + np.sum(self.model.away_riot_map[self.pos[1], self.pos[0]])
             )
-            / (9 * MAX_AVAILABLE_AGENT_IN_CELL)
+            / MAX_AVAILABLE_AGENT_IN_CELL
             * MAX_INJURY_PROB
         )
 
@@ -174,24 +185,51 @@ class FanAgent(Agent):
         row_coords, col_coords = zip(*matches) if matches else ((), ())
         return row_coords, col_coords
 
-    def _move_rioter(self, rows: tuple[int], cols: tuple[int]) -> None:
-        """Moves the agent to a Moore neighbourhood, given its state is rioter."""
-        own_team_rioters = getattr(self.model, f"{'home' if self.team else 'away'}_riot_map")[
-            rows, cols
-        ]
-        opp_team_rioters = getattr(self.model, f"{'home' if not self.team else 'away'}_riot_map")[
-            rows, cols
-        ]
-        if np.sum(own_team_rioters) < np.sum(opp_team_rioters):
+    def _move_rioter(
+        self,
+        all_rows: tuple[int],
+        all_cols: tuple[int],
+        available_rows: tuple[int],
+        available_cols: tuple[int],
+    ) -> None:
+        """Moves the agent to a Moore neighbourhood, given its state is rioter.
+
+        First check if there are more rioters of the same team than the opposite team in the
+            neighbourhood. If not, move towards your own team to be safe, if yes, move towards
+            the opposite team to start a fight.
+        """
+        num_own_team_rioters = np.sum(
+            getattr(self.model, f"{'home' if self.team else 'away'}_riot_map")[all_rows, all_cols]
+        )
+        num_opposite_team_rioters = np.sum(
+            getattr(self.model, f"{'home' if not self.team else 'away'}_riot_map")[
+                all_rows, all_cols
+            ]
+        )
+
+        if num_own_team_rioters < num_opposite_team_rioters:
+            own_team_rioters = getattr(self.model, f"{'home' if self.team else 'away'}_riot_map")[
+                available_rows, available_cols
+            ]
             chosen_coord_idx = random.choice(
                 np.where(own_team_rioters == np.max(own_team_rioters))[0]
             )
         else:
-            chosen_coord_idx = random.choice(
-                np.where(opp_team_rioters == np.min(opp_team_rioters))[0]
-            )
+            # If there is at least one opposite team rioter, move towards the one with the least
+            # number of rioters in the cell. If there are no opposite team rioters, move randomly
+            opp_team_rioters = getattr(
+                self.model, f"{'home' if not self.team else 'away'}_riot_map"
+            )[available_rows, available_cols]
 
-        chosen_row, chosen_col = rows[chosen_coord_idx], cols[chosen_coord_idx]
+            nonzero_opposite_rioters = opp_team_rioters[np.nonzero(opp_team_rioters)]
+            if len(nonzero_opposite_rioters) > 0:
+                chosen_coord_idx = random.choice(
+                    np.where(opp_team_rioters == np.min(nonzero_opposite_rioters))[0]
+                )
+            else:
+                chosen_coord_idx = random.choice(np.where(opp_team_rioters == 0)[0])
+
+        chosen_row, chosen_col = available_rows[chosen_coord_idx], available_cols[chosen_coord_idx]
         self._execute_agent_movement(new_pos=(chosen_col, chosen_row))
 
     def _execute_agent_movement(self, new_pos: tuple[int, int]) -> None:
@@ -220,8 +258,12 @@ class FanAgent(Agent):
         ]
         return available_cells_to_move
 
-    def _find_possible_n_available_cells(self):
-        """Returns the list of cells to which the agent can move in the moore neighbourhood."""
+    def _get_accessible_nbhood(self):
+        """Returns the list of cells in the moore neighbourhood of the agent.
+
+        This includes the cell the agent is currently in, and only considers cells that are
+            accessible in the city map, i.e. cells that are not blocked by a building.
+        """
         all_neighbouring_cell = self.model.grid.get_neighborhood(
             pos=self.pos, moore=True, include_center=True
         )
@@ -231,6 +273,6 @@ class FanAgent(Agent):
         """Finds all the moore neighbor cells, with higher row coordinate."""
         return [
             cell
-            for cell in self._find_cell_to_move(self._find_possible_n_available_cells())
+            for cell in self._find_cell_to_move(self._get_accessible_nbhood())
             if cell[1] > self.pos[1]
         ]
