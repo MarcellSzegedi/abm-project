@@ -9,18 +9,34 @@ from SALib.sample import morris as morris_sampling
 from SALib.sample import saltelli
 
 from abm.model import RiotModel
+from abm.city_map import CityMap
 from abm.utils import global_model_parameters as params
 
 
 class SensitivityTests: 
-    """Class to perform sensitivity tests on the Riot model using Sobol's method."""
+    """Class to perform sensitivity tests on the Riot model using Sobol's method.
     
-    def __init__(self, steps: int, model_run: Callable, problem: dict, num_samples: int = 256): 
+    :param steps: Number of steps to run the model.
+    :param model_run: Callable function to run the riot model.
+    :param problem: Dictionary defining ranges and names of parameters for sensitivity analysis.
+    :param num_samples: Number of samples to use for sensitivity analysis (default is 256).
+    :param city_map: Instance of CityMap class to use in the model (default is None).
+    """
+    
+    def __init__(
+            self, 
+            steps: int, 
+            model_run: Callable, 
+            problem: dict, 
+            num_samples: int = 256, 
+            city_map: CityMap = None
+            ): 
         """Initializes the sensitivity test class."""
         self.steps = steps
         self.model_run = model_run
         self.problem = problem
         self.num_samples = num_samples
+        self.city_map = city_map 
 
     def evaluate_model(self, sample: np.ndarray) -> np.ndarray: 
         """Evaluates the model with a given sample of parameters.
@@ -157,7 +173,8 @@ if __name__ == "__main__":
     model = RiotModel(width=100,
                     height=200,
                     entry_point_home=(10, 0),
-                    entry_point_away=(90, 0))
+                    entry_point_away=(90, 0), 
+                    city_map=CityMap())
 
     steps = 1000
     problem = {
@@ -171,7 +188,7 @@ if __name__ == "__main__":
         "bounds": [[0, 1], [0, 1], [1000, 10000], [1000, 10000]]
     }
 
-    sensitivity_test = SensitivityTests(steps, model.run_riot_model, problem)
+    sensitivity_test = SensitivityTests(steps, model.run_riot_model, problem, city_map=CityMap())
     sobol_df = sensitivity_test.sobol_sensitivity_test()
     morris_df = sensitivity_test.morris_sensitivity_test()
 
