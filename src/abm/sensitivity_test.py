@@ -1,16 +1,13 @@
 """Module for performing sensitivity tests on the Riot model."""
 
-from typing import Callable
 
 import numpy as np
 import pandas as pd
-import concurrent.futures
 from SALib.analyze import morris, sobol
-from SALib.sample import sobol as sobol_sampling, morris as morris_sampling
-from SALib.sample import saltelli
+from SALib.sample import morris as morris_sampling
 
-from abm.model import RiotModel
 from abm.city_map import CityMap
+from abm.model import RiotModel
 from abm.utils import global_model_parameters as params
 
 
@@ -46,7 +43,6 @@ class SensitivityTests:
             exit_space_height: int, 
             entry_separation_ratio: float):
         """Creates a city map for the Riot model."""
-
         city_map = CityMap(
             width=self.width,
             height=self.height,
@@ -131,6 +127,8 @@ class SensitivityTests:
             "Mu*": morris_results["mu_star"],
             "Sigma": morris_results["sigma"],
             })
+    
+
     
 
 if __name__ == "__main__":
