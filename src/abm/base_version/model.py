@@ -39,7 +39,9 @@ class RiotModel(Model):
         self.scheduler = RandomActivation(self)
 
         self.grid = MultiGrid(width=width, height=height, torus=False)
-        self.city_map = city_map if city_map is not None else np.ones((height, width), dtype=np.bool)
+        self.city_map = (
+            city_map if city_map is not None else np.ones((height, width), dtype=np.bool)
+        )
         self.base_state_map = np.zeros(shape=(height, width))
         self.riot_state_map = np.zeros(shape=(height, width))
         self.injured_state_map = np.zeros(shape=(height, width))
@@ -111,6 +113,12 @@ class RiotModel(Model):
     def _init_population(self) -> None:
         """Initializes the population."""
         while self.entered_home_fan_counter < INITIAL_ROUND_OF_ENTRY_HOME:
+            agents_in_entry = len(self.grid.get_cell_list_contents([self.entry_point_home]))
+
+            print(f"Entered fans: {self.entered_home_fan_counter} / {INITIAL_ROUND_OF_ENTRY_HOME}")
+            print(f"Agents in entry cell: {agents_in_entry} / {MAX_AVAILABLE_AGENT_IN_CELL}")
+
+            print(self.entered_home_fan_counter)
             while (
                 len(self.grid.get_cell_list_contents([self.entry_point_home]))
                 < MAX_AVAILABLE_AGENT_IN_CELL
@@ -124,7 +132,17 @@ class RiotModel(Model):
                     ),
                 )
                 self.entered_home_fan_counter += 1
-            self._spread_fans(team=True)
+            else:
+                print(
+                    "Before spread_fans: ",
+                    len(self.grid.get_cell_list_contents([self.entry_point_home])),
+                )
+                self._spread_fans(team=True)
+                print(
+                    "After spread_fans: ",
+                    len(self.grid.get_cell_list_contents([self.entry_point_home])),
+                )
+
         while self.entered_away_fan_counter < INITIAL_ROUND_OF_ENTRY_AWAY:
             while (
                 len(self.grid.get_cell_list_contents([self.entry_point_away]))
@@ -139,7 +157,8 @@ class RiotModel(Model):
                     ),
                 )
                 self.entered_away_fan_counter += 1
-            self._spread_fans(team=False)
+            else:
+                self._spread_fans(team=False)
 
     def _add_agent_to_maps(self, pos: tuple[int, int], team: bool, state: str) -> None:
         """Adds the agent to the team and state maps."""
@@ -166,7 +185,7 @@ class RiotModel(Model):
 
         for row in sorted(list(agents_by_row.keys()), reverse=True):
             for agent in agents_by_row[row]:
-                agent.spread_agent()
+                agent.step(is_init=True)
 
 
 if __name__ == "__main__":
