@@ -1,10 +1,12 @@
 """Module for performing sensitivity tests on the Riot model."""
 
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import os 
 from SALib.analyze import morris, sobol
-from SALib.sample import morris as morris_sampling
+from SALib.sample import morris, sobol
 
 from abm.city_map import CityMap
 from abm.model import RiotModel
@@ -26,8 +28,8 @@ class SensitivityTests:
             problem: dict, 
             width: int = 100, 
             height: int = 200,
-            steps: int = 50, 
-            num_samples: int = 1000, 
+            steps: int = 5, 
+            num_samples: int = 2, 
             ): 
         """Initializes the sensitivity test class."""
         self.steps = steps
@@ -100,7 +102,7 @@ class SensitivityTests:
         
         :returns dict: Sobol sensitivity indices (S1, ST, etc.) for each parameter.
         """
-        sample_parameters = morris_sampling.sample(self.problem, self.num_samples)
+        sample_parameters = sobol.sample(self.problem, self.num_samples)
         sample_riot_fractions = self.evaluate_model(sample_parameters)
         sobol_results = sobol.analyze(self.problem, sample_riot_fractions)
 
@@ -117,7 +119,7 @@ class SensitivityTests:
 
         :returns dict: Morris sensitivity indices (Mu, Mu*, Sigma) for each parameter.
         """
-        sample_parameters = morris_sampling.sample(self.problem, self.num_samples)
+        sample_parameters = morris.sample(self.problem, self.num_samples)
         sample_riot_fractions = self.evaluate_model(sample_parameters)
         morris_results = morris.analyze(self.problem, sample_parameters, sample_riot_fractions)
 
@@ -127,7 +129,60 @@ class SensitivityTests:
             "Mu*": morris_results["mu_star"],
             "Sigma": morris_results["sigma"],
             })
-    
+
+    def plot_sensitivity(sobol_df: pd.DataFrame, morris_df: pd.DataFrame, save_path: str = None): 
+        """Plots the results of Sobol and Morris sensitivity analyses.
+        
+        :param sobol_df: DataFrame containing Sobol sensitivity indices.
+        :param morris_df: DataFrame containing Morris sensitivity indices.
+        :param save_path: Path to save the plot (optional).
+        """
+        _, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+        
+        # Sobol sensitivity analysis bar plot
+        x = np.arange(len(sobol_df["Parameter"]))
+        bar_width = 0.35
+
+        first_order = sobol_df["First-Order"]
+        total_order = sobol_df["Total-Order"]
+
+        ax1.bar(
+            x - bar_width/2, 
+            first_order, 
+            width=bar_width, 
+            label='First-Order', 
+            color='blue',
+            alpha=0.7
+            )
+        ax1.bar(
+            x + bar_width/2, 
+            total_order, 
+            width=bar_width, 
+            label='Total-Order', 
+            color='green',
+            alpha=0.7
+            ) 
+
+        ax1.set_xlabel('Parameters')
+        ax1.set_ylabel('Sensitivity Index')
+        ax1.set_title('Sobol Sensitivity Analysis')
+        ax1.set_xticks(x)
+        ax1.set_xticklabels(sobol_df["Parameter"], rotation=45, ha='right')
+        ax1.legend()
+
+        # Morris sensitivity scatter plot
+        ax2.scatter(morris_df["Mu*"], morris_df["Sigma"], s=100, alpha=0.7, color='green')
+        for i, param in enumerate(morris_df["Parameter"]):
+            ax2.annotate(param, (morris_df["Mu_Star"].iloc[i], morris_df["Sigma"].iloc[i]),
+                        xytext=(5, 5), textcoords='offset points', fontsize=9)
+        
+        ax2.set_xlabel('μ* (Parameter Importance)')
+        ax2.set_ylabel('σ (Non-linearity or Interactions)')
+        ax2.set_title('Morris Analysis: Parameter Screening')
+        ax2.grid(alpha=0.3)
+
+        if save_path:
+            plt.savefig(save_path, bbox_inches='tight')
 
     
 
@@ -151,9 +206,13 @@ if __name__ == "__main__":
         }
 
     sensitivity_test = SensitivityTests(problem)
-    # sobol_df = sensitivity_test.sobol_sensitivity_test()
+    sobol_df = sensitivity_test.sobol_sensitivity_test()
     morris_df = sensitivity_test.morris_sensitivity_test()
-    print(morris_df)
+
+    save_path = "results/sensitivity_analysis"
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    SensitivityTests.plot_sensitivity(sobol_df, morris_df)
 
 
 
