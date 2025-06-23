@@ -2,6 +2,7 @@
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from SALib.analyze import sobol, morris 
 from SALib.sample import saltelli, morris as morris_sampling
 from typing import Callable
@@ -19,7 +20,6 @@ class SensitivityTests:
         self.model_run = model_run
         self.problem = problem
         self.num_samples = num_samples
-        self.results = None
 
     def evaluate_model(self, sample: np.ndarray) -> np.ndarray: 
         """Evaluates the model with a given sample of parameters.
@@ -127,6 +127,30 @@ class SensitivityTests:
                 })
 
         return pd.DataFrame(results)
+    
+
+    def plot_ofat_results(self, ofat_df: pd.DataFrame) -> None:
+        """Plots the results of the OFAT sensitivity analysis.
+        
+        Args:
+            ofat_df (pd.DataFrame): DataFrame containing OFAT results.
+
+        THIS WILL GO TO THE CLI EVENTUALLY, BUT FOR NOW IT IS HERE FOR TESTING
+        """
+
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        for param in ofat_df["parameter"].unique():
+            subset = ofat_df[ofat_df["parameter"] == param]
+            ax.plot(subset["perturbation"], subset["fraction_rioters"], label=param, marker="o")
+
+        ax.set_xlabel("Perturbation")
+        ax.set_ylabel("Fraction of Rioters")
+        ax.set_title("OFAT Sensitivity Analysis")
+        ax.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
 
 if __name__ == "__main__":
     model = RiotModel(width=100,
@@ -144,17 +168,13 @@ if __name__ == "__main__":
     sensitivity_test = SensitivityTests(steps, model.run_riot_model, problem)
     # sobol_df = sensitivity_test.sobol_sensitivity_test()
     # morris_df = sensitivity_test.morris_sensitivity_test()
-    pertubations = np.linspace(-0.1, 0.1, 3)  # Example perturbations
+    pertubations = np.linspace(-0.1, 0.1, 20) 
     ofat_df = sensitivity_test.ofat_sensitivity_test(pertubations)
+    sensitivity_test.plot_ofat_results(ofat_df)
 
     # sobol_df.to_csv("sobol_results.csv", index=False)
     # morris_df.to_csv("morris_results.csv", index=False)
-    ofat_df.to_csv("ofat_results.csv", index=False)
-
-    
-    # print("Sobol Results:", sobol_results)
-    # print("Morris Results:", morris_results)
-    # print("OFAT Results:", ofat_results)
+    # ofat_df.to_csv("ofat_results.csv", index=False)
 
     # Questions for meeting: Sobol uses uses N*(num_vars + 2) samples, where N is the number of samples, do we allow this and run overnight, 
     # or do we use a smaller number of samples? Or parallelise the model runss? 
