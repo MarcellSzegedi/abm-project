@@ -84,7 +84,7 @@ class RiotModel(Model):
         # Collect initial data
         riot_model.agent_state_datacollector.collect(riot_model)
         riot_model.control_team_fan_counter.collect(riot_model)
-
+        
         for _ in trange(n_step):
             riot_model.step()
 
