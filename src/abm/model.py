@@ -80,7 +80,7 @@ class RiotModel(Model):
         # Collect initial data
         riot_model.agent_state_datacollector.collect(riot_model)
         riot_model.control_team_fan_counter.collect(riot_model)
-       
+
         for _ in trange(n_step):
             riot_model._spawn_agents()
             riot_model.step()
@@ -184,11 +184,12 @@ if __name__ == "__main__":
     exit_space_height = 10
     entry_points_home = [(10, 0), (15, 0), (20, 0), (25, 0), (30, 0), (35, 0), (40, 0)]
     entry_points_away = [(90, 0), (85, 0), (80, 0), (75, 0), (70, 0)]
-    
+    n_step = 1000
+
     city_map = CityMap(width, height, n_streets, street_width, exit_space_height)
 
     agent_data, control_data = RiotModel.run_riot_model(
-        width, height, entry_point_home, entry_point_away, n_step, city_map
+        width, height, entry_points_home, entry_points_away, n_step, city_map
     )
 
     agent_data.plot()
