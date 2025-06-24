@@ -176,7 +176,7 @@ class RiotModel(Model):
                     self.entered_home_fan_counter +=1
                 else:
                     self.entered_away_fan_counter +=1
-        print(f"{fans_added} {"home" if team else "away"} fans were added in this Batch")
+        # print(f"{fans_added} {"home" if team else "away"} fans were added in this Batch")
 
     def _spawn_agents(self) -> None:
         """Spawns Agents into the Grid """
@@ -186,12 +186,12 @@ class RiotModel(Model):
             if self.entered_away_fan_counter < INITIAL_ROUND_OF_ENTRY_AWAY:
                 self._add_fans_batch(team=False)
             self._spread_fans()
-            print(f"{self.entered_home_fan_counter} Home Fans are present in the Grid")
-            print(f"{self.entered_away_fan_counter} Away Fans are present in the Grid")
-            num_injured = sum(agent.state == "injured" for agent in self.scheduler.agents)
-            print(f"Number of injured agents: {num_injured}")
-            print(f"{self.count_injured_at_entry_points(True)} Number of injured home agents at the entry points")
-            print(f"{self.count_injured_at_entry_points(False)} Number of injured away agents at the entry points")
+            # print(f"{self.entered_home_fan_counter} Home Fans are present in the Grid")
+            # print(f"{self.entered_away_fan_counter} Away Fans are present in the Grid")
+            # num_injured = sum(agent.state == "injured" for agent in self.scheduler.agents)
+            # print(f"Number of injured agents: {num_injured}")
+            # print(f"{self.count_injured_at_entry_points(True)} Number of injured home agents at the entry points")
+            # print(f"{self.count_injured_at_entry_points(False)} Number of injured away agents at the entry points")
 
     
     def count_injured_at_entry_points(self, team: bool) -> int:
