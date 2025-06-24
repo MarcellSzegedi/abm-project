@@ -3,7 +3,6 @@
 import random
 from collections import defaultdict
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from mesa import Model
@@ -17,11 +16,10 @@ from abm.city_map import CityMap
 from abm.utils.global_model_parameters import (
     INITIAL_PROB_OF_BASE,
     INITIAL_PROB_OF_RIOT,
-    INITIAL_ROUND_OF_ENTRY_AWAY,
-    INITIAL_ROUND_OF_ENTRY_HOME,
     MAX_AVAILABLE_AGENT_IN_CELL,
 )
 from abm.utils.util_func import count_agents_in_state, count_agents_in_team
+from abm.visualisation.animation import CellInfoContainer, animate_model, get_grid_data
 
 
 class RiotModel(Model):
@@ -31,9 +29,12 @@ class RiotModel(Model):
         self,
         width: int,
         height: int,
+        n_home_fans: int,
+        n_away_fans: int,
         entry_point_home: tuple[int, int],
         entry_point_away: tuple[int, int],
         city_map: CityMap,
+        animate: bool = False,
     ) -> None:
         """Initializes the Riot model."""
         super().__init__()
@@ -45,6 +46,8 @@ class RiotModel(Model):
         self.home_riot_map = np.zeros(shape=(height, width))
         self.away_riot_map = np.zeros(shape=(height, width))
 
+        self.n_home_fans = n_home_fans
+        self.n_away_fans = n_away_fans
         self.entry_point_home = entry_point_home  # (col, row) format
         self.entry_point_away = entry_point_away  # (col, row) format
 
@@ -67,37 +70,57 @@ class RiotModel(Model):
         self.entered_away_fan_counter = 0
         self.left_away_fan_counter = 0
 
+        self.animation_frames: list[list[CellInfoContainer]] | None = [] if animate else None
+
     @classmethod
     def run_riot_model(
         cls,
         width: int,
         height: int,
+        n_home_fans: int,
+        n_away_fans: int,
         entry_point_home: tuple[int, int],
         entry_point_away: tuple[int, int],
         n_step: int,
         city_map: CityMap,
-    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+        animate: bool = False,
+    ) -> tuple[pd.DataFrame, pd.DataFrame, list[list[CellInfoContainer]] | None]:
         """Runs the abm model."""
-        riot_model = cls(width, height, entry_point_home, entry_point_away, city_map)
+        riot_model = cls(
+            width,
+            height,
+            n_home_fans,
+            n_away_fans,
+            entry_point_home,
+            entry_point_away,
+            city_map,
+            animate,
+        )
         riot_model._init_population()
 
         # Collect initial data
         riot_model.agent_state_datacollector.collect(riot_model)
         riot_model.control_team_fan_counter.collect(riot_model)
-        
+
         for _ in trange(n_step):
             riot_model.step()
 
-        agent_state_data = riot_model.agent_state_datacollector.get_model_vars_dataframe()
-        control_team_data = riot_model.control_team_fan_counter.get_model_vars_dataframe()
+        agent_state_data: pd.DataFrame = (
+            riot_model.agent_state_datacollector.get_model_vars_dataframe()
+        )
+        control_team_data: pd.DataFrame = (
+            riot_model.control_team_fan_counter.get_model_vars_dataframe()
+        )
 
-        return agent_state_data, control_team_data
+        return agent_state_data, control_team_data, riot_model.animation_frames
 
     def step(self) -> None:
         """Executes events in one step of the model."""
         self.scheduler.step()
         self.agent_state_datacollector.collect(self)
         self.control_team_fan_counter.collect(self)
+        if self.animation_frames is not None:
+            self.animation_frames.append(get_grid_data(self))
 
     def add_agent(self, pos: tuple[int, int], team: bool, state: str) -> None:
         """Adds a new agent to the model."""
@@ -119,7 +142,7 @@ class RiotModel(Model):
 
     def _init_population(self) -> None:
         """Initializes the population."""
-        while self.entered_home_fan_counter < INITIAL_ROUND_OF_ENTRY_HOME:
+        while self.entered_home_fan_counter < self.n_home_fans:
             while (
                 len(self.grid.get_cell_list_contents([self.entry_point_home]))
                 < MAX_AVAILABLE_AGENT_IN_CELL
@@ -134,7 +157,7 @@ class RiotModel(Model):
                 )
                 self.entered_home_fan_counter += 1
             self._spread_fans(team=True)
-        while self.entered_away_fan_counter < INITIAL_ROUND_OF_ENTRY_AWAY:
+        while self.entered_away_fan_counter < self.n_away_fans:
             while (
                 len(self.grid.get_cell_list_contents([self.entry_point_away]))
                 < MAX_AVAILABLE_AGENT_IN_CELL
@@ -177,20 +200,29 @@ class RiotModel(Model):
 
 
 if __name__ == "__main__":
-    width = 100
-    height = 200
-    n_streets = 5
-    street_width = 10
-    exit_space_height = 10
+    width = 29
+    height = 50
+    n_home_fans = 150
+    n_away_fans = 150
+    n_streets = 4
+    street_width = 6
+    exit_space_height = 30
     entry_point_home = (10, 0)
-    entry_point_away = (90, 0)
-    n_step = 1000
+    entry_point_away = (20, 0)
+    n_step = 30
 
     city_map = CityMap(width, height, n_streets, street_width, exit_space_height)
 
-    agent_data, control_data = RiotModel.run_riot_model(
-        width, height, entry_point_home, entry_point_away, n_step, city_map
+    _, _, frames = RiotModel.run_riot_model(
+        width,
+        height,
+        n_home_fans,
+        n_away_fans,
+        entry_point_home,
+        entry_point_away,
+        n_step,
+        city_map,
+        animate=True,
     )
 
-    agent_data.plot()
-    plt.show()
+    animate_model(frames, city_map.grid, height, width)
