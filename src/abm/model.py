@@ -1,8 +1,5 @@
 """ABM model."""
 
-import random
-from collections import defaultdict
-
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
@@ -81,8 +78,8 @@ class RiotModel(Model):
         """Runs the abm model."""
         riot_model = cls(width, height, entry_point_home, entry_point_away)
         # riot_model._init_population()
-        riot_model._spawn_agents()
         for _ in trange(n_step):
+            riot_model._spawn_agents()
             riot_model.step()
 
         agent_state_data = riot_model.agent_state_datacollector.get_model_vars_dataframe()
@@ -114,51 +111,11 @@ class RiotModel(Model):
         self.grid.remove_agent(agent)
         self.scheduler.remove(agent)
 
-    # def _init_population(self) -> None:
-    #     """Initializes the population."""
-    #     c=0
-    #     while self.entered_home_fan_counter < INITIAL_ROUND_OF_ENTRY_HOME:
-    #         c+=1
-    #         while (
-    #             len(self.grid.get_cell_list_contents([self.entry_point_home]))
-    #             < MAX_AVAILABLE_AGENT_IN_CELL
-    #         ):
-    #             print('Adding New agent')
-    #             self.add_agent(
-    #                 pos=self.entry_point_home,
-    #                 team=True,
-    #                 state=np.random.choice(
-    #                     np.array(["bystander", "rioter"]),
-    #                     p=np.array([INITIAL_PROB_OF_BASE, INITIAL_PROB_OF_RIOT]),
-    #                 ),
-    #             )
-    #             self.entered_home_fan_counter += 1
-    #         self._spread_fans(team=True)
-    #         print(f"Total number of home fans that have entered the grid: {self.entered_home_fan_counter}")
-    #         injured_agents = [agent
-    #         for agent in self.grid.get_cell_list_contents([self.entry_point_home])
-    #         if agent.state == "injured"]
-    #         print(f"Number of injured agents at entry point home: {len(injured_agents)}")
-    #     print('Finished adding')
-    #     while self.entered_away_fan_counter < INITIAL_ROUND_OF_ENTRY_AWAY:
-    #         while (
-    #             len(self.grid.get_cell_list_contents([self.entry_point_away]))
-    #             < MAX_AVAILABLE_AGENT_IN_CELL
-    #         ):
-    #             self.add_agent(
-    #                 pos=self.entry_point_away,
-    #                 team=False,
-    #                 state=np.random.choice(
-    #                     np.array(["bystander", "rioter"]),
-    #                     p=np.array([INITIAL_PROB_OF_BASE, INITIAL_PROB_OF_RIOT]),
-    #                 ),
-    #             )
-    #             self.entered_away_fan_counter += 1
-    #         self._spread_fans(team=False)
-
     def _add_fans_batch(self, team: bool) -> None:
-        """Adds a batch of fans (5 for us) for a given team. Ensures only one agent is added in an 
-        entry point of the grid per batch."""
+        """Adds a batch of fans (5 for us) for a given team.
+
+        Ensures only one agent is added in an entry point of the grid per batch.
+        """
         fans_added = 0
         entry_points = self.entry_points_home if team else self.entry_points_away
         for entry_point in entry_points:
@@ -171,30 +128,30 @@ class RiotModel(Model):
                         p=np.array([INITIAL_PROB_OF_BASE, INITIAL_PROB_OF_RIOT]),
                     ),
                 )
-                fans_added += 1 
+                fans_added += 1
                 if team:
-                    self.entered_home_fan_counter +=1
+                    self.entered_home_fan_counter += 1
                 else:
-                    self.entered_away_fan_counter +=1
+                    self.entered_away_fan_counter += 1
         # print(f"{fans_added} {"home" if team else "away"} fans were added in this Batch")
 
     def _spawn_agents(self) -> None:
-        """Spawns Agents into the Grid """
-        while (self.entered_home_fan_counter < INITIAL_ROUND_OF_ENTRY_HOME or self.entered_away_fan_counter< INITIAL_ROUND_OF_ENTRY_AWAY): 
-            if self.entered_home_fan_counter < INITIAL_ROUND_OF_ENTRY_HOME:
-                self._add_fans_batch(team =True)
-            if self.entered_away_fan_counter < INITIAL_ROUND_OF_ENTRY_AWAY:
-                self._add_fans_batch(team=False)
-            self._spread_fans()
-            # print(f"{self.entered_home_fan_counter} Home Fans are present in the Grid")
-            # print(f"{self.entered_away_fan_counter} Away Fans are present in the Grid")
-            # num_injured = sum(agent.state == "injured" for agent in self.scheduler.agents)
-            # print(f"Number of injured agents: {num_injured}")
-            # print(f"{self.count_injured_at_entry_points(True)} Number of injured home agents at the entry points")
-            # print(f"{self.count_injured_at_entry_points(False)} Number of injured away agents at the entry points")
+        """Spawns Agents into the Grid."""
+        if self.entered_home_fan_counter < INITIAL_ROUND_OF_ENTRY_HOME:
+            self._add_fans_batch(team=True)
+        if self.entered_away_fan_counter < INITIAL_ROUND_OF_ENTRY_AWAY:
+            self._add_fans_batch(team=False)
+        # print(f"{self.entered_home_fan_counter} Home Fans are present in the Grid")
+        # print(f"{self.entered_away_fan_counter} Away Fans are present in the Grid")
+        # num_injured = sum(agent.state == "injured" for agent in self.scheduler.agents)
+        # print(f"Number of injured agents: {num_injured}")
+        # print(f"{self.count_injured_at_entry_points(True)} Number of injured home agents at the
+        # entry points")
+        # print(f"{self.count_injured_at_entry_points(False)} Number of injured away agents at the
+        # entry points")
 
-    
     def count_injured_at_entry_points(self, team: bool) -> int:
+        """Counts the number of injured agents at the entry points for a given team."""
         total_injured = 0
         entry_points = entry_points_home if team else entry_points_away
         for entry_point in entry_points:
@@ -215,25 +172,13 @@ class RiotModel(Model):
             riot_map = getattr(self, f"{'home' if agent.team else 'away'}_riot_map")
             riot_map[agent.pos[::-1]] += 1
 
-    def _spread_fans(self) -> None:
-        """Distributes the agents during the initialization of the model."""
-        agents_to_move = [agent for agent in self.scheduler.agents 
-                          if not agent.state == "injured"]
-        random.shuffle(agents_to_move)
-
-        agents_by_row = defaultdict(list)
-        for agent in agents_to_move:
-            agents_by_row[agent.pos[1]].append(agent)
-
-        for row in sorted(list(agents_by_row.keys()), reverse=True):
-            for agent in agents_by_row[row]:
-                agent.step()
-
 
 if __name__ == "__main__":
-    entry_points_home = [(10, 0), (15, 0), (20, 0),(25,0),(30, 0), (35, 0), (40,0)]
-    entry_points_away = [(90, 0), (85, 0), (80, 0), (75, 0), (70,0)]
-    agent_data, control_data = RiotModel.run_riot_model(100, 200, entry_points_home, entry_points_away, 1000)
+    entry_points_home = [(10, 0), (15, 0), (20, 0), (25, 0), (30, 0), (35, 0), (40, 0)]
+    entry_points_away = [(90, 0), (85, 0), (80, 0), (75, 0), (70, 0)]
+    agent_data, control_data = RiotModel.run_riot_model(
+        100, 200, entry_points_home, entry_points_away, 1000
+    )
 
     agent_data.plot()
     plt.show()
