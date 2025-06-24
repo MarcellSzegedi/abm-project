@@ -40,7 +40,7 @@ class RiotModel(Model):
 
         self.scheduler = RandomActivation(self)
 
-        self.grid = MultiGrid(width=width, height=height, torus=False)
+        self.grid = MultiGrid(width=width, height=height, torus=False) 
         self.city_map = city_map
         self.home_riot_map = np.zeros(shape=(height, width))
         self.away_riot_map = np.zeros(shape=(height, width))
