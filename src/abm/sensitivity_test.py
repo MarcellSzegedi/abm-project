@@ -179,7 +179,12 @@ class SensitivityTests:
         
         plt.show()
     
-    def plot_parameter_interactions(self, sobol_matrix: np.ndarray, parameter_names: list, save_path: str = None):
+    def plot_interactions(
+            self, 
+            sobol_matrix: np.ndarray, 
+            parameter_names: list, 
+            save_path: str = None
+            ):
         """Plots a heatmap of second-order (interaction) Sobol sensitivity indices."""
         plt.figure(figsize=(8, 6))
         
@@ -188,8 +193,16 @@ class SensitivityTests:
         im = plt.imshow(sobol_matrix, cmap="viridis", interpolation='nearest')
 
         plt.colorbar(im, label="Second-Order Index (S2)")
-        plt.xticks(ticks=np.arange(len(parameter_names)), labels=parameter_names, rotation=45, ha='right')
-        plt.yticks(ticks=np.arange(len(parameter_names)), labels=parameter_names)
+        plt.xticks(
+            ticks=np.arange(len(parameter_names)), 
+            labels=parameter_names, 
+            rotation=45, 
+            ha='right'
+            )
+        plt.yticks(
+            ticks=np.arange(len(parameter_names)), 
+            labels=parameter_names
+            )
         plt.title("Sobol Second-Order Interaction Heatmap")
         plt.tight_layout()
 
