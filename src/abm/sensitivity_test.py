@@ -2,6 +2,8 @@
 
 
 
+from typing import Optional
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -234,7 +236,6 @@ class SensitivityTests:
         plt.show()
 
   
-
 if __name__ == "__main__":
     problem = {
             "num_vars": 5,
