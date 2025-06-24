@@ -213,15 +213,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
-    width = 29
+    width = 30
     height = 50
     n_home_fans = 150
     n_away_fans = 150
     n_streets = 4
     street_width = 6
-    exit_space_height = 30
-    entry_points_home = [(10, 0), (11, 0), (12, 0), (13, 0), (14, 0)]
-    entry_points_away = [(20, 0), (89, 0), (88, 0), (87, 0), (86, 0)]
+    exit_space_height = 20
+    entry_points_home = [(5, 0), (6, 0), (7, 0), (8, 0), (9, 0)]
+    entry_points_away = [(25, 0), (24, 0), (23, 0), (22, 0), (21, 0)]
     n_step = 30
 
     logger.info("Starting Riot Simulation")
