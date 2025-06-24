@@ -40,7 +40,7 @@ class SensitivityTests:
         self.problem = problem
         self.width = width
         self.height = height
-        self.sobol_matrix = None
+        self.sobol_matrix: Optional[np.ndarray] = None
     
     def _create_city_map(
             self, 
