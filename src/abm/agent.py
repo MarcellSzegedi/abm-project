@@ -97,14 +97,15 @@ class FanAgent(Agent):
                 + np.sum(self.model.away_riot_map[rows, cols])
                 == 1
             ):
-                self.state = "bystander"
                 self.model.remove_agent_from_utility_maps(agent=self)
+                self.state = "bystander"
 
     def _check_injury(self, rows: tuple[int], cols: tuple[int]) -> bool:
         """Checks if the agent is going ot be injured."""
         if self._check_injury_potential(rows, cols):
             prob_to_be_injured = self._injury_prob_calc(rows, cols)
             if random.random() < prob_to_be_injured:
+                self.model.remove_agent_from_utility_maps(agent=self)
                 self.state = "injured"
                 return True
         return False
