@@ -1,9 +1,10 @@
 """ABM model."""
 
+import logging
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import logging
 from mesa import Model
 from mesa.datacollection import DataCollector
 from mesa.space import MultiGrid
@@ -43,7 +44,7 @@ class RiotModel(Model):
         self.home_riot_map = np.zeros(shape=(height, width))
         self.away_riot_map = np.zeros(shape=(height, width))
 
-        self.entry_points_home = entry_points_home  # (col, row) format 
+        self.entry_points_home = entry_points_home  # (col, row) format
         self.entry_points_away = entry_points_away  # (col, row) format
 
         self.agent_state_datacollector = DataCollector(
@@ -77,7 +78,9 @@ class RiotModel(Model):
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Runs the abm model."""
         riot_model = cls(width, height, entry_points_home, entry_points_away, city_map)
-
+        # Collect initial data
+        riot_model.agent_state_datacollector.collect(riot_model)
+        riot_model.control_team_fan_counter(riot_model)
         for _ in trange(n_step):
             riot_model._spawn_agents()
             riot_model.step()
@@ -133,7 +136,7 @@ class RiotModel(Model):
                     self.entered_home_fan_counter += 1
                 else:
                     self.entered_away_fan_counter += 1
-        logger.info(f"{fans_added} {"home" if team else "away"} fans were added in this Batch")
+        logger.info(f"{fans_added} {'home' if team else 'away'} fans were added in this Batch")
 
     def _spawn_agents(self) -> None:
         """Spawns Agents into the Grid."""
@@ -175,15 +178,16 @@ class RiotModel(Model):
             riot_map = getattr(self, f"{'home' if agent.team else 'away'}_riot_map")
             riot_map[agent.pos[::-1]] += 1
 
+
 logging.basicConfig(
-    level=logging.INFO, 
+    level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    filename="riot_simulation.log",  
-    filemode="w"  
+    filename="riot_simulation.log",
+    filemode="w",
 )
 logger = logging.getLogger(__name__)
 
-if __name__ == "__main__":    
+if __name__ == "__main__":
     width = 100
     height = 200
     n_streets = 5
@@ -194,7 +198,8 @@ if __name__ == "__main__":
     n_step = 1000
 
     logger.info("Starting Riot Simulation")
-    logger.info(f"Map size: {width}x{height}, with {n_streets} streets, street width: {street_width}, exit height: {exit_space_height}")
+    logger.info(f"Map size: {width}x{height}, with {n_streets} streets")
+    logger.info(f"Street width: {street_width}, exit height: {exit_space_height}")
     logger.info(f"Entry points (home): {entry_points_home}")
     logger.info(f"Entry points (away): {entry_points_away}")
     logger.info(f"Simulation steps: {n_step}")
@@ -203,6 +208,6 @@ if __name__ == "__main__":
     agent_data, control_data = RiotModel.run_riot_model(
         width, height, entry_points_home, entry_points_away, n_step, city_map
     )
-    logger.info('Riot Simulation Completed. PLotting Results')
+    logger.info("Riot Simulation Completed. PLotting Results")
     agent_data.plot()
     plt.show()
