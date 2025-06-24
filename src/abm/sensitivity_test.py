@@ -2,7 +2,7 @@
 
 
 
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -237,7 +237,7 @@ class SensitivityTests:
 
   
 if __name__ == "__main__":
-    problem = {
+    problem: Dict[str, Any] = {
             "num_vars": 5,
             "names": [
                 "INITIAL_PROB_OF_RIOT",      # Agent: Initial probability of riot
