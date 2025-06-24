@@ -99,7 +99,7 @@ class SensitivityTests:
 
         return np.array(results)
 
-    def sobol_sensitivity_test(self) -> dict:
+    def sobol_sensitivity_test(self) -> pd.DataFrame:
         """Performs Sobol sensitivity analysis on the model.
         
         :returns dict: Sobol sensitivity indices (S1, ST, etc.) for each parameter.
@@ -117,7 +117,7 @@ class SensitivityTests:
             "Total-Order Error": sobol_results["ST_conf"],
         })
     
-    def morris_sensitivity_test(self) -> dict:
+    def morris_sensitivity_test(self) -> pd.DataFrame:
         """Performs Morris sensitivity analysis on the model.
 
         :returns dict: Morris sensitivity indices (Mu, Mu*, Sigma) for each parameter.
@@ -133,7 +133,7 @@ class SensitivityTests:
             "Sigma": morris_results["sigma"],
             })
 
-    def plot_sobol_indices(self, sobol_df: pd.DataFrame, save_path: str = None):
+    def plot_sobol_indices(self, sobol_df: pd.DataFrame, save_path: Optional[str] = None):
         """Plots the Sobol sensitivity indices.
         
         :param sobol_df: DataFrame containing Sobol sensitivity indices.
@@ -171,7 +171,7 @@ class SensitivityTests:
         plt.xlabel('Parameters')
         plt.ylabel('Sensitivity Index')
         plt.title('Sobol Sensitivity Analysis')
-        plt.xticks(x, sobol_df["Parameter"], rotation=45, ha='right')
+        plt.xticks(x, sobol_df["Parameter"].tolist(), rotation=45, ha='right')
         plt.legend()
 
         if save_path:
@@ -183,7 +183,7 @@ class SensitivityTests:
             self, 
             sobol_matrix: np.ndarray, 
             parameter_names: list, 
-            save_path: str = None
+            save_path: Optional[str] = None
             ):
         """Plots a heatmap of second-order (interaction) Sobol sensitivity indices."""
         plt.figure(figsize=(8, 6))
@@ -210,7 +210,7 @@ class SensitivityTests:
             plt.savefig(f"results/{save_path}")
         plt.show()
     
-    def plot_morris_analysis(self, morris_df: pd.DataFrame, save_path: str = None):
+    def plot_morris_analysis(self, morris_df: pd.DataFrame, save_path: Optional[str] = None):
         """Plots the Morris sensitivity analysis results.
         
         :param morris_df: DataFrame containing Morris sensitivity indices.
@@ -262,7 +262,7 @@ if __name__ == "__main__":
         save_path="sobol_sensitivity_analysis.png"
         )
 
-    sensitivity_test.plot_parameter_interactions(
+    sensitivity_test.plot_interactions(
         sensitivity_test.sobol_matrix, 
         problem["names"], 
         save_path="sobol_interaction_heatmap.png"
