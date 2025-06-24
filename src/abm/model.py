@@ -78,9 +78,11 @@ class RiotModel(Model):
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Runs the abm model."""
         riot_model = cls(width, height, entry_points_home, entry_points_away, city_map)
+
         # Collect initial data
         riot_model.agent_state_datacollector.collect(riot_model)
-        riot_model.control_team_fan_counter(riot_model)
+        riot_model.control_team_fan_counter.collect(riot_model)
+
         for _ in trange(n_step):
             riot_model._spawn_agents()
             riot_model.step()
