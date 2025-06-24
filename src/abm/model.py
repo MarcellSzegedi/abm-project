@@ -2,7 +2,6 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-import numpy.typing as npt
 import pandas as pd
 from mesa import Model
 from mesa.datacollection import DataCollector
@@ -11,6 +10,7 @@ from mesa.time import RandomActivation
 from tqdm import trange
 
 from abm.agent import FanAgent
+from abm.city_map import CityMap
 from abm.utils.global_model_parameters import (
     INITIAL_PROB_OF_BASE,
     INITIAL_PROB_OF_RIOT,
@@ -30,7 +30,7 @@ class RiotModel(Model):
         height: int,
         entry_points_home: list[tuple[int, int]],
         entry_points_away: list[tuple[int, int]],
-        city_map: npt.NDArray[np.bool] | None = None,
+        city_map: CityMap,
     ) -> None:
         """Initializes the Riot model."""
         super().__init__()
@@ -38,9 +38,7 @@ class RiotModel(Model):
         self.scheduler = RandomActivation(self)
 
         self.grid = MultiGrid(width=width, height=height, torus=False)
-        self.city_map = (
-            city_map if city_map is not None else np.ones((height, width), dtype=np.bool)
-        )
+        self.city_map = city_map
         self.home_riot_map = np.zeros(shape=(height, width))
         self.away_riot_map = np.zeros(shape=(height, width))
 
@@ -74,10 +72,15 @@ class RiotModel(Model):
         entry_point_home: tuple[int, int],
         entry_point_away: tuple[int, int],
         n_step: int,
+        city_map: CityMap,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Runs the abm model."""
-        riot_model = cls(width, height, entry_point_home, entry_point_away)
-        # riot_model._init_population()
+        riot_model = cls(width, height, entry_point_home, entry_point_away, city_map)
+
+        # Collect initial data
+        riot_model.agent_state_datacollector.collect(riot_model)
+        riot_model.control_team_fan_counter.collect(riot_model)
+       
         for _ in trange(n_step):
             riot_model._spawn_agents()
             riot_model.step()
@@ -174,10 +177,18 @@ class RiotModel(Model):
 
 
 if __name__ == "__main__":
+    width = 100
+    height = 200
+    n_streets = 5
+    street_width = 10
+    exit_space_height = 10
     entry_points_home = [(10, 0), (15, 0), (20, 0), (25, 0), (30, 0), (35, 0), (40, 0)]
     entry_points_away = [(90, 0), (85, 0), (80, 0), (75, 0), (70, 0)]
+    
+    city_map = CityMap(width, height, n_streets, street_width, exit_space_height)
+
     agent_data, control_data = RiotModel.run_riot_model(
-        100, 200, entry_points_home, entry_points_away, 1000
+        width, height, entry_point_home, entry_point_away, n_step, city_map
     )
 
     agent_data.plot()

@@ -26,6 +26,8 @@ DOWNWARD_EXTRA_WEIGHT = 5
 INJURY_MINIMUM_AGENT_THD = 3
 MAX_INJURY_PROB = 0.1
 
+RIOT_MINIMUM_AGENT_THD = 1
+
 ROW_MASKS = {"bot": [6, 7, 8], "mid": [3, 4, 5], "top": [0, 1, 2]}
 
 MOVEMENT_ARGUMENTS: list[MovementArgs] = [
