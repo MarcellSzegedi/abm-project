@@ -102,6 +102,11 @@ class RiotModel(Model):
 
         for _ in trange(n_step):
             riot_model._spawn_agents()
+            riot_model.agent_state_datacollector.collect(riot_model)
+            riot_model.control_team_fan_counter.collect(riot_model)
+            if riot_model.animation_frames is not None:
+                riot_model.animation_frames.append(get_grid_data(riot_model))
+
             riot_model.step()
 
         agent_state_data: pd.DataFrame = (

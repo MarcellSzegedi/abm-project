@@ -100,5 +100,6 @@ def animate_model(
         html_str = ani.to_jshtml()
         with open(filename, "w") as f:
             f.write(html_str)
+        print(f"Animation saved to {filename}")
     else:
         raise Exception("No results to animate.")
