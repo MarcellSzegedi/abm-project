@@ -2,7 +2,6 @@
 
 import logging
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from mesa import Model
@@ -16,11 +15,10 @@ from abm.city_map import CityMap
 from abm.utils.global_model_parameters import (
     INITIAL_PROB_OF_BASE,
     INITIAL_PROB_OF_RIOT,
-    INITIAL_ROUND_OF_ENTRY_AWAY,
-    INITIAL_ROUND_OF_ENTRY_HOME,
     MAX_AVAILABLE_AGENT_IN_CELL,
 )
 from abm.utils.util_func import count_agents_in_state, count_agents_in_team
+from abm.visualisation.animation import CellInfoContainer, animate_model, get_grid_data
 
 
 class RiotModel(Model):
@@ -30,9 +28,12 @@ class RiotModel(Model):
         self,
         width: int,
         height: int,
+        n_home_fans: int,
+        n_away_fans: int,
         entry_points_home: list[tuple[int, int]],
         entry_points_away: list[tuple[int, int]],
         city_map: CityMap,
+        animate: bool = False,
     ) -> None:
         """Initializes the Riot model."""
         super().__init__()
@@ -44,6 +45,8 @@ class RiotModel(Model):
         self.home_riot_map = np.zeros(shape=(height, width))
         self.away_riot_map = np.zeros(shape=(height, width))
 
+        self.n_home_fans = n_home_fans
+        self.n_away_fans = n_away_fans
         self.entry_points_home = entry_points_home  # (col, row) format
         self.entry_points_away = entry_points_away  # (col, row) format
 
@@ -66,18 +69,32 @@ class RiotModel(Model):
         self.entered_away_fan_counter = 0
         self.left_away_fan_counter = 0
 
+        self.animation_frames: list[list[CellInfoContainer]] | None = [] if animate else None
+
     @classmethod
     def run_riot_model(
         cls,
         width: int,
         height: int,
+        n_home_fans: int,
+        n_away_fans: int,
         entry_points_home: list[tuple[int, int]],
         entry_points_away: list[tuple[int, int]],
         n_step: int,
         city_map: CityMap,
-    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+        animate: bool = False,
+    ) -> tuple[pd.DataFrame, pd.DataFrame, list[list[CellInfoContainer]] | None]:
         """Runs the abm model."""
-        riot_model = cls(width, height, entry_points_home, entry_points_away, city_map)
+        riot_model = cls(
+            width,
+            height,
+            n_home_fans,
+            n_away_fans,
+            entry_points_home,
+            entry_points_away,
+            city_map,
+            animate,
+        )
 
         # Collect initial data
         riot_model.agent_state_datacollector.collect(riot_model)
@@ -87,16 +104,22 @@ class RiotModel(Model):
             riot_model._spawn_agents()
             riot_model.step()
 
-        agent_state_data = riot_model.agent_state_datacollector.get_model_vars_dataframe()
-        control_team_data = riot_model.control_team_fan_counter.get_model_vars_dataframe()
+        agent_state_data: pd.DataFrame = (
+            riot_model.agent_state_datacollector.get_model_vars_dataframe()
+        )
+        control_team_data: pd.DataFrame = (
+            riot_model.control_team_fan_counter.get_model_vars_dataframe()
+        )
 
-        return agent_state_data, control_team_data
+        return agent_state_data, control_team_data, riot_model.animation_frames
 
     def step(self) -> None:
         """Executes events in one step of the model."""
         self.scheduler.step()
         self.agent_state_datacollector.collect(self)
         self.control_team_fan_counter.collect(self)
+        if self.animation_frames is not None:
+            self.animation_frames.append(get_grid_data(self))
 
     def add_agent(self, pos: tuple[int, int], team: bool, state: str) -> None:
         """Adds a new agent to the model."""
@@ -142,9 +165,9 @@ class RiotModel(Model):
 
     def _spawn_agents(self) -> None:
         """Spawns Agents into the Grid."""
-        if self.entered_home_fan_counter < INITIAL_ROUND_OF_ENTRY_HOME:
+        if self.entered_home_fan_counter < self.n_home_fans:
             self._add_fans_batch(team=True)
-        if self.entered_away_fan_counter < INITIAL_ROUND_OF_ENTRY_AWAY:
+        if self.entered_away_fan_counter < self.n_away_fans:
             self._add_fans_batch(team=False)
 
         logger.info(f"{self.entered_home_fan_counter} Home Fans are present in the Grid")
@@ -190,14 +213,16 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
-    width = 100
-    height = 200
-    n_streets = 5
-    street_width = 10
-    exit_space_height = 10
+    width = 29
+    height = 50
+    n_home_fans = 150
+    n_away_fans = 150
+    n_streets = 4
+    street_width = 6
+    exit_space_height = 30
     entry_points_home = [(10, 0), (11, 0), (12, 0), (13, 0), (14, 0)]
-    entry_points_away = [(90, 0), (89, 0), (88, 0), (87, 0), (86, 0)]
-    n_step = 1000
+    entry_points_away = [(20, 0), (89, 0), (88, 0), (87, 0), (86, 0)]
+    n_step = 30
 
     logger.info("Starting Riot Simulation")
     logger.info(f"Map size: {width}x{height}, with {n_streets} streets")
@@ -207,9 +232,16 @@ if __name__ == "__main__":
     logger.info(f"Simulation steps: {n_step}")
 
     city_map = CityMap(width, height, n_streets, street_width, exit_space_height)
-    agent_data, control_data = RiotModel.run_riot_model(
-        width, height, entry_points_home, entry_points_away, n_step, city_map
+    _, _, frames = RiotModel.run_riot_model(
+        width,
+        height,
+        n_home_fans,
+        n_away_fans,
+        entry_points_home,
+        entry_points_away,
+        n_step,
+        city_map,
+        animate=True,
     )
     logger.info("Riot Simulation Completed. PLotting Results")
-    agent_data.plot()
-    plt.show()
+    animate_model(frames, city_map.grid, height, width)
