@@ -69,13 +69,13 @@ class RiotModel(Model):
         cls,
         width: int,
         height: int,
-        entry_point_home: tuple[int, int],
-        entry_point_away: tuple[int, int],
+        entry_points_home: list[tuple[int, int]],
+        entry_points_away: list[tuple[int, int]],
         n_step: int,
         city_map: CityMap,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Runs the abm model."""
-        riot_model = cls(width, height, entry_point_home, entry_point_away, city_map)
+        riot_model = cls(width, height, entry_points_home, entry_points_away, city_map)
 
         # Collect initial data
         riot_model.agent_state_datacollector.collect(riot_model)
@@ -182,8 +182,8 @@ if __name__ == "__main__":
     n_streets = 5
     street_width = 10
     exit_space_height = 10
-    entry_points_home = [(10, 0), (15, 0), (20, 0), (25, 0), (30, 0), (35, 0), (40, 0)]
-    entry_points_away = [(90, 0), (85, 0), (80, 0), (75, 0), (70, 0)]
+    entry_points_home = [(10, 0), (11, 0), (12, 0), (13, 0), (14, 0)]
+    entry_points_away = [(90, 0), (89, 0), (88, 0), (87, 0), (86, 0)]
     n_step = 1000
 
     city_map = CityMap(width, height, n_streets, street_width, exit_space_height)
