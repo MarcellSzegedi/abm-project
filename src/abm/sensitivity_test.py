@@ -29,7 +29,7 @@ class SensitivityTests:
             problem: dict, 
             width: int = 100, 
             height: int = 200,
-            steps: int = 100, 
+            steps: int = 50, 
             num_samples: int = 4, 
             ): 
         """Initializes the sensitivity test class."""
@@ -101,10 +101,7 @@ class SensitivityTests:
                     injured.iloc[max_riot_time]
                 )
 
-                if total_agents_at_peak > 0: 
-                    frac_max_rioters[i] = max_rioters / total_agents_at_peak 
-                else: 
-                    frac_max_rioters[i] = 0
+                frac_max_rioters[i] = max_rioters / total_agents_at_peak
 
             else:
                 frac_max_rioters[i] = 0
@@ -135,7 +132,7 @@ class SensitivityTests:
         :param sobol_df: DataFrame containing Sobol sensitivity indices.
         :param save_path: Path to save the plot (optional).
         """
-        plt.figure(figsize=(10, 6))
+        plt.figure(figsize=(10, 5))
         x = np.arange(len(sobol_df["Parameter"]))
         bar_width = 0.35
 
@@ -222,10 +219,12 @@ if __name__ == "__main__":
             ],
             "bounds": [
                 [2, 6],         # Number of streets 
-                [5, 20],        # Street width (in cells)
-                [5, 20],        # Exit space height (in cells)
-                [0.1, 0.8]      # Entry separation (40-80% of width apart)
-            ]
+                [5, 15],        # Street width (in cells)
+                [5, 15],        # Exit space height (in cells)
+                [0.4, 0.8]      # Entry separation (40-80% of width apart)
+            ] 
+            # TODO: There may need to be tests somewhere to make sure ALL combinations of these parameters make sense. 
+                #Sometimes, evaluations are not possible because the parameters are not compatible.
         }
     
     sensitivity_test = SensitivityTests(problem)
