@@ -3,6 +3,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import logging
 from mesa import Model
 from mesa.datacollection import DataCollector
 from mesa.space import MultiGrid
@@ -42,7 +43,7 @@ class RiotModel(Model):
         self.home_riot_map = np.zeros(shape=(height, width))
         self.away_riot_map = np.zeros(shape=(height, width))
 
-        self.entry_points_home = entry_points_home  # (col, row) format List of entry points
+        self.entry_points_home = entry_points_home  # (col, row) format 
         self.entry_points_away = entry_points_away  # (col, row) format
 
         self.agent_state_datacollector = DataCollector(
@@ -76,10 +77,6 @@ class RiotModel(Model):
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Runs the abm model."""
         riot_model = cls(width, height, entry_points_home, entry_points_away, city_map)
-
-        # Collect initial data
-        riot_model.agent_state_datacollector.collect(riot_model)
-        riot_model.control_team_fan_counter.collect(riot_model)
 
         for _ in trange(n_step):
             riot_model._spawn_agents()
@@ -136,7 +133,7 @@ class RiotModel(Model):
                     self.entered_home_fan_counter += 1
                 else:
                     self.entered_away_fan_counter += 1
-        # print(f"{fans_added} {"home" if team else "away"} fans were added in this Batch")
+        logger.info(f"{fans_added} {"home" if team else "away"} fans were added in this Batch")
 
     def _spawn_agents(self) -> None:
         """Spawns Agents into the Grid."""
@@ -144,14 +141,17 @@ class RiotModel(Model):
             self._add_fans_batch(team=True)
         if self.entered_away_fan_counter < INITIAL_ROUND_OF_ENTRY_AWAY:
             self._add_fans_batch(team=False)
-        # print(f"{self.entered_home_fan_counter} Home Fans are present in the Grid")
-        # print(f"{self.entered_away_fan_counter} Away Fans are present in the Grid")
-        # num_injured = sum(agent.state == "injured" for agent in self.scheduler.agents)
-        # print(f"Number of injured agents: {num_injured}")
-        # print(f"{self.count_injured_at_entry_points(True)} Number of injured home agents at the
-        # entry points")
-        # print(f"{self.count_injured_at_entry_points(False)} Number of injured away agents at the
-        # entry points")
+
+        logger.info(f"{self.entered_home_fan_counter} Home Fans are present in the Grid")
+        logger.info(f"{self.entered_away_fan_counter} Away Fans are present in the Grid")
+
+        num_injured = sum(agent.state == "injured" for agent in self.scheduler.agents)
+        logger.info(f"Number of injured agents: {num_injured}")
+
+        injured_home = self.count_injured_at_entry_points(True)
+        injured_away = self.count_injured_at_entry_points(False)
+        logger.info(f"{injured_home} injured home agents at entry points")
+        logger.info(f"{injured_away} injured away agents at entry points")
 
     def count_injured_at_entry_points(self, team: bool) -> int:
         """Counts the number of injured agents at the entry points for a given team."""
@@ -175,8 +175,15 @@ class RiotModel(Model):
             riot_map = getattr(self, f"{'home' if agent.team else 'away'}_riot_map")
             riot_map[agent.pos[::-1]] += 1
 
+logging.basicConfig(
+    level=logging.INFO, 
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    filename="riot_simulation.log",  
+    filemode="w"  
+)
+logger = logging.getLogger(__name__)
 
-if __name__ == "__main__":
+if __name__ == "__main__":    
     width = 100
     height = 200
     n_streets = 5
@@ -186,11 +193,16 @@ if __name__ == "__main__":
     entry_points_away = [(90, 0), (89, 0), (88, 0), (87, 0), (86, 0)]
     n_step = 1000
 
-    city_map = CityMap(width, height, n_streets, street_width, exit_space_height)
+    logger.info("Starting Riot Simulation")
+    logger.info(f"Map size: {width}x{height}, with {n_streets} streets, street width: {street_width}, exit height: {exit_space_height}")
+    logger.info(f"Entry points (home): {entry_points_home}")
+    logger.info(f"Entry points (away): {entry_points_away}")
+    logger.info(f"Simulation steps: {n_step}")
 
+    city_map = CityMap(width, height, n_streets, street_width, exit_space_height)
     agent_data, control_data = RiotModel.run_riot_model(
         width, height, entry_points_home, entry_points_away, n_step, city_map
     )
-
+    logger.info('Riot Simulation Completed. PLotting Results')
     agent_data.plot()
     plt.show()

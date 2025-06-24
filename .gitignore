@@ -21,3 +21,4 @@ wheels/
 # Data files
 *.xlsx
 *.csv
+riot_simulation.log
