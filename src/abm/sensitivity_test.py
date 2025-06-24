@@ -263,11 +263,15 @@ if __name__ == "__main__":
         save_path="sobol_sensitivity_analysis.png"
         )
 
-    sensitivity_test.plot_interactions(
-        sensitivity_test.sobol_matrix, 
-        problem["names"], 
-        save_path="sobol_interaction_heatmap.png"
+    if sensitivity_test.sobol_matrix is not None:
+        sensitivity_test.plot_interactions(
+            sensitivity_test.sobol_matrix,
+            problem["names"],
+            save_path="sobol_interaction_heatmap.png"
         )
+    else:
+        print("sobol_matrix is None, skipping plot_interactions")
+
 
 
 
