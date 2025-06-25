@@ -16,12 +16,8 @@ from abm.model import RiotModel
 
 class SensitivityTests: 
     """Class to perform sensitivity tests on the Riot model using Sobol's method.
-    
-    :param steps: Number of steps to run the model.
-    :param model_run: Callable function to run the riot model.
-    :param problem: Dictionary defining ranges and names of parameters for sensitivity analysis.
-    :param num_samples: Number of samples to use for sensitivity analysis (default is 256).
-    :param city_map: Instance of CityMap class to use in the model (default is None).
+
+    :param:
     """
     
     def __init__(
@@ -29,6 +25,8 @@ class SensitivityTests:
             problem: dict, 
             width: int = 100, 
             height: int = 200,
+            n_home_fans: int = 250,
+            n_away_fans: int = 150,
             steps: int = 50, 
             num_samples: int = 4, 
             ): 
@@ -38,6 +36,8 @@ class SensitivityTests:
         self.problem = problem
         self.width = width
         self.height = height
+        self.n_home_fans = n_home_fans
+        self.n_away_fans = n_away_fans
         self.sobol_matrix: Optional[np.ndarray] = None
     
     def _create_city_map(
@@ -66,47 +66,45 @@ class SensitivityTests:
         
         :param sample: A 2D numpy array where each row is a set of parameters to evaluate.
         """
-        frac_max_rioters = np.zeros(sample.shape[0])
+        total_riot_activity = np.zeros(sample.shape[0])
 
         for i, params_vector in enumerate(sample):
-            n_streets = int(params_vector[0])
-            street_width = int(params_vector[1])
-            exit_space_height = int(params_vector[2])
-            entry_separation = params_vector[3]
+            try: 
+                n_streets = int(params_vector[0])
+                street_width = int(params_vector[1])
+                exit_space_height = int(params_vector[2])
+                entry_separation = params_vector[3]
 
-            city_map, entry_home, entry_away = self._create_city_map(
-                n_streets, street_width, exit_space_height, entry_separation
-            )
-            
-            agent_data, _ = RiotModel.run_riot_model(
-                width=self.width,
-                height=self.height,
-                entry_point_home=entry_home,
-                entry_point_away=entry_away,
-                n_step=self.steps,
-                city_map=city_map
-            )
-
-            rioters = agent_data["Rioter"]
-            bystanders = agent_data["Bystander"]
-            injured = agent_data["Injured"]
-
-            # Calculate the fraction of rioters at the peak rioting time
-            if not rioters.empty:
-                max_riot_time = rioters.values.argmax()
-                max_rioters = rioters.iloc[max_riot_time]
-                total_agents_at_peak = (
-                    max_rioters +
-                    bystanders.iloc[max_riot_time] +
-                    injured.iloc[max_riot_time]
+                city_map, entry_home, entry_away = self._create_city_map(
+                    n_streets, street_width, exit_space_height, entry_separation
+                )
+                
+                agent_data, _ = RiotModel.run_riot_model(
+                    width=self.width,
+                    height=self.height,
+                    n_home_fans=self.n_home_fans,     
+                    n_away_fans=self.n_away_fans,
+                    entry_points_home=[entry_home],  
+                    entry_points_away=[entry_away],
+                    n_step=self.steps,
+                    city_map=city_map,
+                    animate=False,
+                    detailed_logging=False,
                 )
 
-                frac_max_rioters[i] = max_rioters / total_agents_at_peak
+                rioters = agent_data["Rioter"]
 
-            else:
-                frac_max_rioters[i] = 0
+                # Calculate the fraction of rioters at the peak rioting time
+                if not rioters.empty:
+                    total_riot_activity[i] = rioters.sum()
+                else:
+                    total_riot_activity[i] = 0
 
-        return frac_max_rioters
+            except Exception as e: 
+                print(f"Combination of Street Width: {street_width} and Number of Streets: {n_streets} invalid. Error: {e}")
+                total_riot_activity[i] = 0
+
+        return total_riot_activity
 
     def sobol_sensitivity_test(self) -> pd.DataFrame:
         """Performs Sobol sensitivity analysis on the model.
@@ -241,6 +239,7 @@ if __name__ == "__main__":
             problem["names"],
             save_path="sobol_interaction_heatmap.png"
         )
+
     else:
         print("sobol_matrix is None, skipping plot_interactions")
 
