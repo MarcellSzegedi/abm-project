@@ -17,8 +17,12 @@ from abm.utils.global_model_parameters import (
     INITIAL_PROB_OF_RIOT,
     MAX_AVAILABLE_AGENT_IN_CELL,
 )
+from abm.utils.logging_config import setup_logging
 from abm.utils.util_func import count_agents_in_state, count_agents_in_team
 from abm.visualisation.animation import CellInfoContainer, animate_model, get_grid_data
+
+setup_logging()
+logger = logging.getLogger(__name__)
 
 
 class RiotModel(Model):
@@ -83,6 +87,7 @@ class RiotModel(Model):
         n_step: int,
         city_map: CityMap,
         animate: bool = False,
+        detailed_logging: bool = True,
     ) -> tuple[pd.DataFrame, pd.DataFrame, list[list[CellInfoContainer]] | None]:
         """Runs the abm model."""
         riot_model = cls(
@@ -101,7 +106,7 @@ class RiotModel(Model):
         riot_model.control_team_fan_counter.collect(riot_model)
 
         for _ in trange(n_step):
-            riot_model._spawn_agents()
+            riot_model._spawn_agents(detailed_logging)
             riot_model.agent_state_datacollector.collect(riot_model)
             riot_model.control_team_fan_counter.collect(riot_model)
             if riot_model.animation_frames is not None:
@@ -144,7 +149,38 @@ class RiotModel(Model):
         self.grid.remove_agent(agent)
         self.scheduler.remove(agent)
 
-    def _add_fans_batch(self, team: bool) -> None:
+    def remove_agent_from_utility_maps(self, agent: FanAgent) -> None:
+        """Removes the agent from the corresponding utility maps."""
+        if agent.state == "rioter":
+            riot_map = getattr(self, f"{'home' if agent.team else 'away'}_riot_map")
+            riot_map[agent.pos[::-1]] -= 1
+
+    def add_agent_to_utility_maps(self, agent: FanAgent) -> None:
+        """Adds the agent to the corresponding utility maps."""
+        if agent.state == "rioter":
+            riot_map = getattr(self, f"{'home' if agent.team else 'away'}_riot_map")
+            riot_map[agent.pos[::-1]] += 1
+
+    def _spawn_agents(self, log_switch: bool) -> None:
+        """Spawns Agents into the Grid."""
+        if self.entered_home_fan_counter < self.n_home_fans:
+            self._add_fans_batch(team=True, log_switch=log_switch)
+        if self.entered_away_fan_counter < self.n_away_fans:
+            self._add_fans_batch(team=False, log_switch=log_switch)
+
+        if log_switch:
+            logger.info(f"{self.entered_home_fan_counter} Home Fans are present in the Grid")
+            logger.info(f"{self.entered_away_fan_counter} Away Fans are present in the Grid")
+
+            num_injured = sum(agent.state == "injured" for agent in self.scheduler.agents)
+            logger.info(f"Number of injured agents: {num_injured}")
+
+            injured_home = self._count_injured_at_entry_points(True)
+            injured_away = self._count_injured_at_entry_points(False)
+            logger.info(f"{injured_home} injured home agents at entry points")
+            logger.info(f"{injured_away} injured away agents at entry points")
+
+    def _add_fans_batch(self, team: bool, log_switch: bool) -> None:
         """Adds a batch of fans (5 for us) for a given team.
 
         Ensures only one agent is added in an entry point of the grid per batch.
@@ -166,27 +202,11 @@ class RiotModel(Model):
                     self.entered_home_fan_counter += 1
                 else:
                     self.entered_away_fan_counter += 1
-        logger.info(f"{fans_added} {'home' if team else 'away'} fans were added in this Batch")
 
-    def _spawn_agents(self) -> None:
-        """Spawns Agents into the Grid."""
-        if self.entered_home_fan_counter < self.n_home_fans:
-            self._add_fans_batch(team=True)
-        if self.entered_away_fan_counter < self.n_away_fans:
-            self._add_fans_batch(team=False)
+        if log_switch:
+            logger.info(f"{fans_added} {'home' if team else 'away'} fans were added in this Batch")
 
-        logger.info(f"{self.entered_home_fan_counter} Home Fans are present in the Grid")
-        logger.info(f"{self.entered_away_fan_counter} Away Fans are present in the Grid")
-
-        num_injured = sum(agent.state == "injured" for agent in self.scheduler.agents)
-        logger.info(f"Number of injured agents: {num_injured}")
-
-        injured_home = self.count_injured_at_entry_points(True)
-        injured_away = self.count_injured_at_entry_points(False)
-        logger.info(f"{injured_home} injured home agents at entry points")
-        logger.info(f"{injured_away} injured away agents at entry points")
-
-    def count_injured_at_entry_points(self, team: bool) -> int:
+    def _count_injured_at_entry_points(self, team: bool) -> int:
         """Counts the number of injured agents at the entry points for a given team."""
         total_injured = 0
         entry_points = entry_points_home if team else entry_points_away
@@ -196,38 +216,18 @@ class RiotModel(Model):
             total_injured += len(injured_agents)
         return total_injured
 
-    def remove_agent_from_utility_maps(self, agent: FanAgent) -> None:
-        """Removes the agent from the corresponding utility maps."""
-        if agent.state == "rioter":
-            riot_map = getattr(self, f"{'home' if agent.team else 'away'}_riot_map")
-            riot_map[agent.pos[::-1]] -= 1
-
-    def add_agent_to_utility_maps(self, agent: FanAgent) -> None:
-        """Adds the agent to the corresponding utility maps."""
-        if agent.state == "rioter":
-            riot_map = getattr(self, f"{'home' if agent.team else 'away'}_riot_map")
-            riot_map[agent.pos[::-1]] += 1
-
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    filename="riot_simulation.log",
-    filemode="w",
-)
-logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
-    width = 30
+    width = 29
     height = 50
-    n_home_fans = 150
+    n_home_fans = 250
     n_away_fans = 150
     n_streets = 4
     street_width = 6
     exit_space_height = 20
-    entry_points_home = [(5, 0), (6, 0), (7, 0), (8, 0), (9, 0)]
-    entry_points_away = [(25, 0), (24, 0), (23, 0), (22, 0), (21, 0)]
-    n_step = 30
+    entry_points_home = [(9, 0), (10, 0), (11, 0), (12, 0), (13, 0)]
+    entry_points_away = [(15, 0), (16, 0), (17, 0), (18, 0), (19, 0)]
+    n_step = 50
 
     logger.info("Starting Riot Simulation")
     logger.info(f"Map size: {width}x{height}, with {n_streets} streets")
