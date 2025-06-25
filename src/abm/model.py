@@ -225,10 +225,13 @@ if __name__ == "__main__":
     n_streets = 4
     street_width = 7
     exit_space_height = 10
-    entry_points_home = [(i, 0) for i in range(14, 19)] + [
-        (i, 0) for i in range(22, 27)
+    HOME_EXIT_1_RANGE = range(14, 19)
+    HOME_EXIT_2_RANGE = range(22, 27)
+    AWAY_EXIT_RANGE = range(30, 35)
+    entry_points_home = [(i, 0) for i in HOME_EXIT_1_RANGE] + [
+        (i, 0) for i in HOME_EXIT_2_RANGE
     ]  # 2 exits for home fans
-    entry_points_away = [(i, 0) for i in range(30, 35)]  # 1 exit for away fans
+    entry_points_away = [(i, 0) for i in AWAY_EXIT_RANGE]  # 1 exit for away fans
     n_step = 3
 
     logger.info("Starting Riot Simulation")
