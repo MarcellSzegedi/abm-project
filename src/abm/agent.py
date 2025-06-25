@@ -11,7 +11,9 @@ from abm.utils.global_model_parameters import (
     MAX_AVAILABLE_AGENT_IN_CELL,
     MAX_INJURY_PROB,
     MOVEMENT_ARGUMENTS,
-    RIOT_MINIMUM_AGENT_THD,
+    # RIOT_MINIMUM_AGENT_THD,
+    OPP_RIOT_MINIMUM_THD, 
+    OWN_RIOT_MINIMUM_THD,
     ROW_FILTERING_CONDITIONS,
     RIOTER_STEP_THD,
 )
@@ -97,8 +99,10 @@ class FanAgent(Agent):
                 self.model, f"{'home' if not self.team else 'away'}_riot_map"
             )[rows, cols]
             if (np.sum(own_team_rioters) > np.sum(opp_team_rioters)) and np.sum(
+                opp_team_rioters
+            ) >= OPP_RIOT_MINIMUM_THD and np.sum(
                 own_team_rioters
-            ) > RIOT_MINIMUM_AGENT_THD:
+            ) >= OWN_RIOT_MINIMUM_THD:
                 self.state = "rioter"
                 self.model.add_agent_to_utility_maps(agent=self)
 
