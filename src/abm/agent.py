@@ -12,8 +12,8 @@ from abm.utils.global_model_parameters import (
     MAX_INJURY_PROB,
     MOVEMENT_ARGUMENTS,
     RIOT_MINIMUM_AGENT_THD,
-    STEP_THD,
     ROW_FILTERING_CONDITIONS,
+    STEP_THD,
 )
 
 if TYPE_CHECKING:
