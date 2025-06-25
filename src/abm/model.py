@@ -224,10 +224,10 @@ if __name__ == "__main__":
     n_away_fans = 150
     n_streets = 4
     street_width = 6
-    exit_space_height = 20
+    exit_space_height = 10
     entry_points_home = [(9, 0), (10, 0), (11, 0), (12, 0), (13, 0)]
     entry_points_away = [(15, 0), (16, 0), (17, 0), (18, 0), (19, 0)]
-    n_step = 50
+    n_step = 30
 
     logger.info("Starting Riot Simulation")
     logger.info(f"Map size: {width}x{height}, with {n_streets} streets")

@@ -12,6 +12,7 @@ from abm.utils.global_model_parameters import (
     MAX_INJURY_PROB,
     MOVEMENT_ARGUMENTS,
     RIOT_MINIMUM_AGENT_THD,
+    RIOTER_STEP_THD,
     ROW_FILTERING_CONDITIONS,
 )
 
@@ -37,12 +38,15 @@ class FanAgent(Agent):
         self.unique_id = unique_id
         self.state = state
         self.team = team
+        self.rioter_step = 0
 
     def step(self) -> None:
         """Executes events during an agent's step."""
         if not self.state == "injured":
             accessible_nbhood_cells = self._get_accessible_nbhood()
             self._set_agent_state(accessible_nbhood_cells)
+            if self.state == "rioter":
+                self.rioter_step += 1
             self._move_agent(accessible_nbhood_cells)
 
     def spread_agent(self) -> None:
@@ -106,11 +110,11 @@ class FanAgent(Agent):
             nbhood.
         """
         if not self._check_injury():
-            if (
-                np.sum(self.model.home_riot_map[rows, cols])
-                + np.sum(self.model.away_riot_map[rows, cols])
-                == 1
-            ):
+            total_rioters = np.sum(
+                self.model.home_riot_map[rows, cols]) + np.sum(self.model.away_riot_map[rows, cols]
+                         )
+
+            if self.rioter_step >= RIOTER_STEP_THD and total_rioters == 1:
                 self.model.remove_agent_from_utility_maps(agent=self)
                 self.state = "bystander"
 
@@ -199,6 +203,18 @@ class FanAgent(Agent):
             neighbourhood. If not, move towards your own team to be safe, if yes, move towards
             the opposite team to start a fight.
         """
+        if self.rioter_step < RIOTER_STEP_THD:
+            if self._find_available_downward_cells(): 
+                return self._execute_agent_movement(
+                    new_pos=random.choice(self._find_available_downward_cells())
+                    )
+            
+            choice = random.choice(
+                list(zip(available_cols, available_rows))
+            )
+
+            return self._execute_agent_movement(new_pos=choice)
+
         num_own_team_rioters = np.sum(
             getattr(self.model, f"{'home' if self.team else 'away'}_riot_map")[all_rows, all_cols]
         )
