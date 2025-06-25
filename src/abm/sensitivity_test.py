@@ -100,8 +100,8 @@ class SensitivityTests:
                 else:
                     total_riot_activity[i] = 0
 
-            except Exception as e: 
-                print(f"Combination of Street Width: {street_width} and Number of Streets: {n_streets} invalid. Error: {e}")
+            except Exception: 
+                print("Invalid parameter combination.")
                 total_riot_activity[i] = 0
 
         return total_riot_activity
