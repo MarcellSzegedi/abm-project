@@ -23,43 +23,40 @@ class CityMap:
         self.exit_space_height = exit_space_height
 
         self.grid = np.zeros((height, width), dtype=np.bool)
-        self.set_exit_space(exit_space_height)
-        self.generate_vertical_streets(n_streets, street_width)
+        self._set_exit_space()
+        self._generate_vertical_streets()
 
-    def set_exit_space(self, exit_space_height=10):
-        """Set an exit space at the top of the grid where agents can move freely.
+    def _set_exit_space(self) -> None:
+        """Set an exit space at the top of the grid where agents can move freely."""
+        self.grid[0 : self.exit_space_height, :] = True
 
-        :param exit_space_height: Height of the exit space.
-        """
-        self.grid[0:exit_space_height, :] = True
+    def _generate_vertical_streets(self) -> None:
+        """Splits the grid into multiple vertical streets of given width."""
+        if self.n_streets <= 0:
+            raise ValueError(
+                f"Number of streets must be a positive integer. {self.n_streets} given."
+            )
 
-    def generate_vertical_streets(self, n_streets, street_width):
-        """Splits the grid into multiple vertical streets of given width.
-
-        :param n_streets: Number of streets to generate.
-        :param street_width: Width of each street.
-        """
-        if n_streets <= 0:
-            raise ValueError(f"Number of streets must be a positive integer. {n_streets} given.")
-
-        if street_width <= 0:
-            raise ValueError(f"Street width must be a positive integer. {street_width} given.")
+        if self.street_width <= 0:
+            raise ValueError(
+                f"Street width must be a positive integer. {self.street_width} given."
+            )
 
         # Calculate the number of cells needed for the streets
-        total_street_width = n_streets * street_width
+        total_street_width = self.n_streets * self.street_width
         if total_street_width > self.width:
             raise ValueError("Total width of streets exceeds grid width.")
 
         # Calculate the number of columns available for buildings
         available_columns = self.width - total_street_width
-        building_width = available_columns // (n_streets + 1)
-        if building_width < 1 and n_streets > 1:
+        building_width = available_columns // (self.n_streets + 1)
+        if building_width < 1 and self.n_streets > 1:
             raise ValueError("Building width must be at least 1.")
 
         # Create vertical streets with spacing
-        for i in range(n_streets):
-            start_col = building_width * (i + 1) + i * street_width
-            end_col = start_col + street_width
+        for i in range(self.n_streets):
+            start_col = building_width * (i + 1) + i * self.street_width
+            end_col = start_col + self.street_width
             self.grid[:, start_col:end_col] = True
 
     def display(self):

@@ -12,19 +12,12 @@ class MovementArgs(TypedDict):
 
 MAX_AVAILABLE_AGENT_IN_CELL = 5
 
-MIN_PROB_OF_TRANS_TO_BASE = 0.01
-MIN_PROB_OF_TRANS_TO_RIOT = 0.01
-MIN_PROB_OF_TRANS_TO_INJURED = 0.0
-
 INITIAL_PROB_OF_RIOT = 0.1
 INITIAL_PROB_OF_BASE = 1 - INITIAL_PROB_OF_RIOT
-INITIAL_ROUND_OF_ENTRY_HOME = 1000
-INITIAL_ROUND_OF_ENTRY_AWAY = 500
 
-DOWNWARD_EXTRA_WEIGHT = 5
 
 INJURY_MINIMUM_AGENT_THD = 3
-MAX_INJURY_PROB = 0.3
+MAX_INJURY_PROB = 0.1
 
 RIOT_MINIMUM_AGENT_THD = 1
 
@@ -43,4 +36,19 @@ ROW_FILTERING_CONDITIONS = {
     "bot": lambda row_cord, curr_pos: row_cord > curr_pos,
     "mid": lambda row_cord, curr_pos: row_cord == curr_pos,
     "top": lambda row_cord, curr_pos: row_cord < curr_pos,
+}
+
+AGENT_ANIM_PLACEMENT_COL = {
+    1: [0.5],
+    2: [0.2, 0.8],
+    3: [0.2, 0.5, 0.8],
+    4: [0.2, 0.2, 0.8, 0.8],
+    5: [0.2, 0.2, 0.5, 0.8, 0.8],
+}
+AGENT_ANIM_PLACEMENT_ROW = {
+    1: [0.5],
+    2: [0.5, 0.5],
+    3: [0.2, 0.5, 0.2],
+    4: [0.2, 0.8, 0.2, 0.8],
+    5: [0.2, 0.8, 0.5, 0.2, 0.8],
 }
