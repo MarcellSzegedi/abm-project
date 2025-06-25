@@ -232,7 +232,7 @@ if __name__ == "__main__":
         (i, 0) for i in HOME_EXIT_2_RANGE
     ]  # 2 exits for home fans
     entry_points_away = [(i, 0) for i in AWAY_EXIT_RANGE]  # 1 exit for away fans
-    n_step = 3
+    n_step = 20  # TODO: Needs to be increased accordingly
 
     logger.info("Starting Riot Simulation")
     logger.info(f"Map size: {width}x{height}, with {n_streets} streets")
