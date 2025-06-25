@@ -218,16 +218,18 @@ class RiotModel(Model):
 
 
 if __name__ == "__main__":
-    width = 29
-    height = 50
-    n_home_fans = 250
-    n_away_fans = 150
+    width = 50
+    height = 100
+    n_home_fans = 9000
+    n_away_fans = 1000
     n_streets = 4
-    street_width = 6
-    exit_space_height = 20
-    entry_points_home = [(9, 0), (10, 0), (11, 0), (12, 0), (13, 0)]
-    entry_points_away = [(15, 0), (16, 0), (17, 0), (18, 0), (19, 0)]
-    n_step = 50
+    street_width = 7
+    exit_space_height = 10
+    entry_points_home = [(i, 0) for i in range(16, 21)] + [
+        (i, 0) for i in range(22, 27)
+    ]  # 2 exits for home fans
+    entry_points_away = [(i, 0) for i in range(28, 33)]  # 1 exit for away fans
+    n_step = 100
 
     logger.info("Starting Riot Simulation")
     logger.info(f"Map size: {width}x{height}, with {n_streets} streets")
