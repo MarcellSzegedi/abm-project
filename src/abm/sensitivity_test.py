@@ -25,10 +25,10 @@ class SensitivityTests:
             problem: dict, 
             width: int = 100, 
             height: int = 200,
-            n_home_fans: int = 250,
-            n_away_fans: int = 150,
-            steps: int = 50, 
-            num_samples: int = 4, 
+            n_home_fans: int = 10000,
+            n_away_fans: int = 5000,
+            steps: int = 100, 
+            num_samples: int = 256, 
             ): 
         """Initializes the sensitivity test class."""
         self.steps = steps
@@ -79,7 +79,7 @@ class SensitivityTests:
                     n_streets, street_width, exit_space_height, entry_separation
                 )
                 
-                agent_data, _ = RiotModel.run_riot_model(
+                agent_data, _, _ = RiotModel.run_riot_model(
                     width=self.width,
                     height=self.height,
                     n_home_fans=self.n_home_fans,     
@@ -94,7 +94,7 @@ class SensitivityTests:
 
                 rioters = agent_data["Rioter"]
 
-                # Calculate the fraction of rioters at the peak rioting time
+                # Calculate the total number of rioters in the simulation
                 if not rioters.empty:
                     total_riot_activity[i] = rioters.sum()
                 else:
@@ -221,8 +221,6 @@ if __name__ == "__main__":
                 [5, 15],        # Exit space height (in cells)
                 [0.4, 0.8]      # Entry separation (40-80% of width apart)
             ] 
-            # TODO: There may need to be tests somewhere to make sure ALL combinations of these parameters make sense. 
-                #Sometimes, evaluations are not possible because the parameters are not compatible.
         }
     
     sensitivity_test = SensitivityTests(problem)
@@ -239,19 +237,5 @@ if __name__ == "__main__":
             problem["names"],
             save_path="sobol_interaction_heatmap.png"
         )
-
     else:
         print("sobol_matrix is None, skipping plot_interactions")
-
-
-
-
-
-
-
-        
-    
-
-
-    
-    

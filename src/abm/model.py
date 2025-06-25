@@ -209,7 +209,7 @@ class RiotModel(Model):
     def _count_injured_at_entry_points(self, team: bool) -> int:
         """Counts the number of injured agents at the entry points for a given team."""
         total_injured = 0
-        entry_points = entry_points_home if team else entry_points_away
+        entry_points = self.entry_points_home if team else self.entry_points_away
         for entry_point in entry_points:
             agents_in_cell = self.grid.get_cell_list_contents([entry_point])
             injured_agents = [agent for agent in agents_in_cell if agent.state == "injured"]
