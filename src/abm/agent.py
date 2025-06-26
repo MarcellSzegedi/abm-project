@@ -111,9 +111,9 @@ class FanAgent(Agent):
             nbhood.
         """
         if not self._check_injury():
-            total_rioters = np.sum(
-                self.model.home_riot_map[rows, cols]) + np.sum(self.model.away_riot_map[rows, cols]
-                         )
+            total_rioters = np.sum(self.model.home_riot_map[rows, cols]) + np.sum(
+                self.model.away_riot_map[rows, cols]
+            )
 
             if self.step_counter >= STEP_THD and total_rioters == 1:
                 self.model.remove_agent_from_utility_maps(agent=self)
@@ -142,16 +142,22 @@ class FanAgent(Agent):
         """Calculated the probability of an agent being injured.
 
         The probability increases with the number of rioters in the cell, and is capped at a
-            maximum value.
+            maximum value. It also increases if there are rioters of the opposite team.
         """
-        return (
-            (
-                np.sum(self.model.home_riot_map[self.pos[1], self.pos[0]])
-                + np.sum(self.model.away_riot_map[self.pos[1], self.pos[0]])
-            )
+        num_home_team_rioters = np.sum(self.model.home_riot_map[self.pos[1], self.pos[0]])
+        num_away_team_rioters = np.sum(self.model.away_riot_map[self.pos[1], self.pos[0]])
+
+        injury_prob = (
+            (num_home_team_rioters + num_away_team_rioters)
             / MAX_AVAILABLE_AGENT_IN_CELL
             * MAX_INJURY_PROB
         )
+
+        # Decrease probability if there are not rioters of the opposite team
+        if not (num_home_team_rioters and num_away_team_rioters):
+            injury_prob *= 0.5
+
+        return injury_prob
 
     def _move_bystander(self, rows: tuple[int], cols: tuple[int]) -> None:
         """Moves the agent to a Moore neighbourhood, given its state is bystander."""
@@ -205,14 +211,12 @@ class FanAgent(Agent):
             the opposite team to start a fight.
         """
         if self.step_counter < STEP_THD:
-            if self._find_available_downward_cells(): 
+            if self._find_available_downward_cells():
                 return self._execute_agent_movement(
                     new_pos=random.choice(self._find_available_downward_cells())
-                    )
-            
-            choice = random.choice(
-                list(zip(available_cols, available_rows))
-            )
+                )
+
+            choice = random.choice(list(zip(available_cols, available_rows)))
 
             return self._execute_agent_movement(new_pos=choice)
 
