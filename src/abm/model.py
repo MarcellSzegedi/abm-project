@@ -156,10 +156,12 @@ class RiotModel(Model):
         if not self.city_map.grid[pos[::-1]]:
             raise ValueError(
                 f"Agent cannot be placed at {pos}, as it is not accessible for the agents"
-                f"due to the city map structure.")
+                f"due to the city map structure."
+            )
         if len(self.grid.get_cell_list_contents([pos])) >= MAX_AVAILABLE_AGENT_IN_CELL:
             raise ValueError(
-                f"Agent cannot be placed at {pos}, as there are too many other agents already.")
+                f"Agent cannot be placed at {pos}, as there are too many other agents already."
+            )
 
         agent = FanAgent(pos=pos, unique_id=self.next_id(), team=team, state=state, model=self)
         self.grid.place_agent(agent, pos)
@@ -259,7 +261,7 @@ class RiotModel(Model):
             logger.info(f"{fans_added} {'home' if team else 'away'} fans were added in this Batch")
 
     def _agent_info_logging(self) -> None:
-        """logs various info about the agents in the model.
+        """Logs various info about the agents in the model.
 
         Specifically:
         - Number of agents already entered to the model for both teams separately.
@@ -275,7 +277,7 @@ class RiotModel(Model):
             f"{self.entered_away_fan_counter} Away Fans are present in the Grid",
             f"Number of injured agents: {num_injured}",
             f"{injured_home} injured home agents at entry points",
-            f"{injured_away} injured away agents at entry points"
+            f"{injured_away} injured away agents at entry points",
         ]
         logger.info("\n".join(info_lines))
 
