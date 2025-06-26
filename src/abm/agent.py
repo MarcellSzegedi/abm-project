@@ -11,11 +11,9 @@ from abm.utils.global_model_parameters import (
     MAX_AVAILABLE_AGENT_IN_CELL,
     MAX_INJURY_PROB,
     MOVEMENT_ARGUMENTS,
-    # RIOT_MINIMUM_AGENT_THD,
-    OPP_RIOT_MINIMUM_THD,
-    OWN_RIOT_MINIMUM_THD,
-    RIOTER_STEP_THD,
+    RIOT_MINIMUM_AGENT_THD,
     ROW_FILTERING_CONDITIONS,
+    STEP_THD,
 )
 
 if TYPE_CHECKING:
@@ -40,16 +38,15 @@ class FanAgent(Agent):
         self.unique_id = unique_id
         self.state = state
         self.team = team
-        self.rioter_step = 0
+        self.step_counter = 0
 
     def step(self) -> None:
         """Executes events during an agent's step."""
         if not self.state == "injured":
             accessible_nbhood_cells = self._get_accessible_nbhood()
             self._set_agent_state(accessible_nbhood_cells)
-            if self.state == "rioter":
-                self.rioter_step += 1
             self._move_agent(accessible_nbhood_cells)
+            self.step_counter += 1
 
     def spread_agent(self) -> None:
         """Moves a given agent to a cell in the moore neighborhood, towards the exit of the map."""
@@ -98,11 +95,11 @@ class FanAgent(Agent):
             opp_team_rioters = getattr(
                 self.model, f"{'home' if not self.team else 'away'}_riot_map"
             )[rows, cols]
-            if (np.sum(own_team_rioters) > np.sum(opp_team_rioters)) and np.sum(
-                opp_team_rioters
-            ) >= OPP_RIOT_MINIMUM_THD and np.sum(
-                own_team_rioters
-            ) >= OWN_RIOT_MINIMUM_THD:
+            if (
+                np.sum(own_team_rioters) >= np.sum(opp_team_rioters)
+                and np.sum(own_team_rioters) + np.sum(opp_team_rioters) >= RIOT_MINIMUM_AGENT_THD
+                and np.sum(opp_team_rioters)
+            ):
                 self.state = "rioter"
                 self.model.add_agent_to_utility_maps(agent=self)
 
@@ -114,12 +111,11 @@ class FanAgent(Agent):
             nbhood.
         """
         if not self._check_injury():
-            total_rioters = (
-                np.sum(self.model.home_riot_map[rows, cols])
-                + np.sum(self.model.away_riot_map[rows, cols])
-            )
-            # Only calm down once they’ve been rioting ≥ threshold AND are alone
-            if self.rioter_step >= RIOTER_STEP_THD and total_rioters == 1:
+            total_rioters = np.sum(
+                self.model.home_riot_map[rows, cols]) + np.sum(self.model.away_riot_map[rows, cols]
+                         )
+
+            if self.step_counter >= STEP_THD and total_rioters == 1:
                 self.model.remove_agent_from_utility_maps(agent=self)
                 self.state = "bystander"
 
@@ -208,16 +204,18 @@ class FanAgent(Agent):
             neighbourhood. If not, move towards your own team to be safe, if yes, move towards
             the opposite team to start a fight.
         """
-        if self.rioter_step < RIOTER_STEP_THD:
-            downs = self._find_available_downward_cells()
-            if downs:
-                return self._execute_agent_movement(new_pos=random.choice(downs))
-
+        if self.step_counter < STEP_THD:
+            if self._find_available_downward_cells(): 
+                return self._execute_agent_movement(
+                    new_pos=random.choice(self._find_available_downward_cells())
+                    )
+            
             choice = random.choice(
                 list(zip(available_cols, available_rows))
             )
+
             return self._execute_agent_movement(new_pos=choice)
-        
+
         num_own_team_rioters = np.sum(
             getattr(self.model, f"{'home' if self.team else 'away'}_riot_map")[all_rows, all_cols]
         )
