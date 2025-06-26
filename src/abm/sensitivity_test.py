@@ -17,13 +17,13 @@ from abm.model import RiotModel
 class SensitivityTests: 
     """Class to perform sensitivity tests on the Riot model using Sobol's method.
 
-    :param problem: 
-    :param width: 
-    :param height: 
-    :param n_home_fans: 
-    :param n_away_fans:
-    :param steps:
-    :param num_samples:
+    :param problem: Dictionary defining the parameter space for SALib (keys: 'num_vars', 'names', 'bounds').
+    :param width: Width of the city map (default: 50).
+    :param height: Height of the city map (default: 100).
+    :param n_home_fans: Number of home fans in the simulation (default: 4500).
+    :param n_away_fans: Number of away fans in the simulation (default: 500).
+    :param steps: Number of simulation steps to run for each sample (default: 250).
+    :param num_samples: Number of samples to generate for Sobol analysis (default: 512).
     """
 
     def __init__(
