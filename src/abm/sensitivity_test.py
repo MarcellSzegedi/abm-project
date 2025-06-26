@@ -17,9 +17,15 @@ from abm.model import RiotModel
 class SensitivityTests: 
     """Class to perform sensitivity tests on the Riot model using Sobol's method.
 
-    :param:
+    :param problem: 
+    :param width: 
+    :param height: 
+    :param n_home_fans: 
+    :param n_away_fans:
+    :param steps:
+    :param num_samples:
     """
-    
+
     def __init__(
             self, 
             problem: dict, 
@@ -27,8 +33,8 @@ class SensitivityTests:
             height: int = 100,
             n_home_fans: int = 4500,
             n_away_fans: int = 500,
-            steps: int = 500, 
-            num_samples: int = 512, 
+            steps: int = 100, 
+            num_samples: int = 256, 
             ): 
         """Initializes the sensitivity test class."""
         self.steps = steps
@@ -41,26 +47,50 @@ class SensitivityTests:
         self.sobol_matrix: Optional[np.ndarray] = None
     
     def _create_city_map(
-            self, 
-            n_streets: int, 
-            street_width: int, 
-            exit_space_height: int, 
-            entry_separation_ratio: float):
-        """Creates a city map for the Riot model."""
+        self,
+        n_streets: int,
+        street_width: int,
+        exit_space_height: int,
+        entry_separation_ratio: float,
+        n_home_clusters: int = 2,
+        n_away_clusters: int = 1,
+        cluster_size: int = 5,
+    ) -> tuple[CityMap, list[tuple[int, int]], list[tuple[int, int]]]:
+
         city_map = CityMap(
             width=self.width,
             height=self.height,
             n_streets=n_streets,
             street_width=street_width,
-            exit_space_height=exit_space_height
+            exit_space_height=exit_space_height,
         )
 
-        separation = int(self.width * entry_separation_ratio / 2)
-        entry_point_home = (separation, 0)
-        entry_point_away = (self.width - separation, 0)
+        entry_points_home = [] 
+        entry_points_away = [] 
 
-        return city_map, entry_point_home, entry_point_away
+        cluster_spacing = int(self.width * entry_separation_ratio) # Space between centers of clusters
+        if n_home_clusters > 0:
+            space_between_home = (n_home_clusters - 1) * cluster_spacing # Total space between centers of clusters
+            home_start_x = (self.width - space_between_home) // 2 # X position of the first cluster
+
+            for i in range(n_home_clusters):
+                center = home_start_x + i * cluster_spacing 
+                start = max(center - cluster_size // 2, 0)
+                end = min(start + cluster_size, self.width)
+                entry_points_home.extend((x, 0) for x in range(start, end))
         
+        if n_away_clusters > 0:
+            space_between_away = (n_away_clusters - 1) * cluster_spacing
+            away_start_x = (self.width - space_between_away) // 2
+
+            for i in range(n_away_clusters):
+                center = away_start_x + i * cluster_spacing
+                start = max(center - cluster_size // 2, 0)
+                end = min(start + cluster_size, self.width)
+                entry_points_away.extend((x, 0) for x in range(start, end))
+
+        return city_map, entry_points_home, entry_points_away
+
     def evaluate_model(self, sample: np.ndarray) -> np.ndarray: 
         """Evaluates the model with a given sample of parameters.
         
@@ -84,8 +114,8 @@ class SensitivityTests:
                     height=self.height,
                     n_home_fans=self.n_home_fans,     
                     n_away_fans=self.n_away_fans,
-                    entry_points_home=[entry_home],  
-                    entry_points_away=[entry_away],
+                    entry_points_home=entry_home,  
+                    entry_points_away=entry_away,
                     n_step=self.steps,
                     city_map=city_map,
                     animate=False,
@@ -101,7 +131,7 @@ class SensitivityTests:
                     total_riot_activity[i] = 0
 
             except Exception: 
-                print("Invalid parameter combination.")
+                # print(f"Invalid parameter combination: Streets: {n_streets}, Street Width: {street_width}, Exit Space: {exit_space_height}, Space Between Doors: {entry_separation}")
                 total_riot_activity[i] = 0
 
         return total_riot_activity
@@ -219,7 +249,7 @@ if __name__ == "__main__":
                 [2, 6],         # Number of streets 
                 [5, 15],        # Street width (in cells)
                 [5, 15],        # Exit space height (in cells)
-                [0.2, 0.8]      # Entry separation (40-80% of width apart)
+                [0.05, 0.3]     # 5% to 30% separation
             ] 
         }
     
