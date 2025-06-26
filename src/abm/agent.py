@@ -95,9 +95,11 @@ class FanAgent(Agent):
             opp_team_rioters = getattr(
                 self.model, f"{'home' if not self.team else 'away'}_riot_map"
             )[rows, cols]
-            if (np.sum(own_team_rioters) > np.sum(opp_team_rioters)) and np.sum(
-                own_team_rioters
-            ) > RIOT_MINIMUM_AGENT_THD:
+            if (
+                np.sum(own_team_rioters) >= np.sum(opp_team_rioters)
+                and np.sum(own_team_rioters) + np.sum(opp_team_rioters) >= RIOT_MINIMUM_AGENT_THD
+                and np.sum(opp_team_rioters)
+            ):
                 self.state = "rioter"
                 self.model.add_agent_to_utility_maps(agent=self)
 
