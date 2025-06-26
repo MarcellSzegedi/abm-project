@@ -75,6 +75,8 @@ class RiotModel(Model):
 
         self.animation_frames: list[list[CellInfoContainer]] | None = [] if animate else None
 
+        self.running = True
+
     @classmethod
     def run_riot_model(
         cls,
@@ -113,7 +115,9 @@ class RiotModel(Model):
                 riot_model.animation_frames.append(get_grid_data(riot_model))
 
             riot_model.step()
-
+            if not riot_model.running:
+                logging.info("There are no more active agents. Stopping Simulation early ")
+                break
         agent_state_data: pd.DataFrame = (
             riot_model.agent_state_datacollector.get_model_vars_dataframe()
         )
@@ -126,6 +130,28 @@ class RiotModel(Model):
     def step(self) -> None:
         """Executes events in one step of the model."""
         self.scheduler.step()
+        logging.info(
+            "Total number of rioters + bystanders: %d",
+            count_agents_in_state(self, target_state="rioter")
+            + count_agents_in_state(self, target_state="bystander"),
+        )
+        logging.info(
+            "Total number of Bystanders : %d",
+            count_agents_in_state(self, target_state="bystander"),
+        )
+        logging.info(
+            "Total entered fans: %d", self.entered_away_fan_counter + self.entered_home_fan_counter
+        )
+        logging.info("Total Fans that should enter : %d", n_home_fans + n_away_fans)
+
+        if count_agents_in_state(self, target_state="rioter") + count_agents_in_state(
+            self, target_state="bystander"
+        ) <= 0.01 * (n_home_fans + n_away_fans) and (
+            self.entered_away_fan_counter + self.entered_home_fan_counter
+            >= n_home_fans + n_away_fans
+        ):
+            self.running = False
+
         self.agent_state_datacollector.collect(self)
         self.control_team_fan_counter.collect(self)
         if self.animation_frames is not None:
