@@ -151,12 +151,11 @@ class FanAgent(Agent):
             (num_home_team_rioters + num_away_team_rioters)
             / MAX_AVAILABLE_AGENT_IN_CELL
             * MAX_INJURY_PROB
-            * 0.5
         )
 
-        # Increase probability if there are rioters of the opposite team
-        if num_home_team_rioters and num_away_team_rioters:
-            injury_prob *= 2
+        # Decrease probability if there are not rioters of the opposite team
+        if not (num_home_team_rioters and num_away_team_rioters):
+            injury_prob *= 0.5
 
         return injury_prob
 
