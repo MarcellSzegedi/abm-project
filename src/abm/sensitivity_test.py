@@ -17,7 +17,7 @@ from abm.model import RiotModel
 class SensitivityTests: 
     """Class to perform sensitivity tests on the Riot model using Sobol's method.
 
-    :param problem: Dictionary defining the parameter space for SALib (keys: 'num_vars', 'names', 'bounds').
+    :param problem: Dictionary defining the parameter space for SALib.
     :param width: Width of the city map (default: 50).
     :param height: Height of the city map (default: 100).
     :param n_home_fans: Number of home fans in the simulation (default: 4500).
