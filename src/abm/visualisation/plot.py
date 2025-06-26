@@ -43,17 +43,17 @@ def run_simulations(
 def plot_riot_time_series(
     width: int = 50,
     height: int = 100,
-    n_home: int = 9000,
-    n_away: int = 1000,
+    n_home: int = 4500,
+    n_away: int = 500,
     entry_home: list[tuple[int, int]] = [(i, 0) for i in range(14, 19)] + [(i, 0) for i in range(22, 27)],
     entry_away: list[tuple[int, int]] = [(i, 0) for i in range(30, 35)],
-    n_steps: int = 100,
+    n_steps: int = 250,
     street_width: int = 7,
     n_streets: int = 3,
     exit_space_height: int = 10,
     street_width_values: list[int] = [5, 10, 15],
-    exit_height_values: list[int] = [2, 4, 6, 8, 10],
-    n_street_values: list[int] = [1, 2, 3, 4, 5],
+    exit_height_values: list[int] = [2, 6, 10],
+    n_street_values: list[int] = [1, 3, 5],
     n_runs: int = 10,
 ):
     """
@@ -108,5 +108,5 @@ def plot_riot_time_series(
     plt.tight_layout()
     plt.show()
 
-if __name__ = "__main__": 
+if __name__ == "__main__": 
     plot_riot_time_series()
