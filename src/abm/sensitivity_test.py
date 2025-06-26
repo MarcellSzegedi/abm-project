@@ -23,12 +23,12 @@ class SensitivityTests:
     def __init__(
             self, 
             problem: dict, 
-            width: int = 100, 
-            height: int = 200,
-            n_home_fans: int = 10000,
-            n_away_fans: int = 5000,
-            steps: int = 100, 
-            num_samples: int = 256, 
+            width: int = 50, 
+            height: int = 100,
+            n_home_fans: int = 4500,
+            n_away_fans: int = 500,
+            steps: int = 500, 
+            num_samples: int = 512, 
             ): 
         """Initializes the sensitivity test class."""
         self.steps = steps
@@ -219,7 +219,7 @@ if __name__ == "__main__":
                 [2, 6],         # Number of streets 
                 [5, 15],        # Street width (in cells)
                 [5, 15],        # Exit space height (in cells)
-                [0.4, 0.8]      # Entry separation (40-80% of width apart)
+                [0.2, 0.8]      # Entry separation (40-80% of width apart)
             ] 
         }
     
