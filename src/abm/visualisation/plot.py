@@ -5,7 +5,6 @@ import numpy as np
 from abm.model import RiotModel
 from abm.city_map import CityMap
 
-
 def run_simulations(
         city_map: CityMap, 
         n_runs: int, 
@@ -47,6 +46,8 @@ def plot_riot_time_series(
     n_away: int = 500,
     entry_home: list[tuple[int, int]] = [(i, 0) for i in range(14, 19)] + [(i, 0) for i in range(22, 27)],
     entry_away: list[tuple[int, int]] = [(i, 0) for i in range(30, 35)],
+    entry_home_list: list[tuple[int, int]] = None,
+    entry_away_list: list[tuple[int, int]] = None,
     n_steps: int = 250,
     street_width: int = 7,
     n_streets: int = 3,
@@ -60,7 +61,7 @@ def plot_riot_time_series(
     Plots three subplots showing number of rioters over time for different parameters.
     Each line is the mean of multiple simulations, with shaded standard deviation.
     """
-    fig, axs = plt.subplots(1, 3, figsize=(18, 6))
+    fig, axs = plt.subplots(2, 2, figsize=(18, 6))
     steps = np.arange(n_steps + 1)
 
     # Subplot 1: Varying street width
@@ -104,6 +105,34 @@ def plot_riot_time_series(
     axs[2].set_xlabel("Step")
     axs[2].set_ylabel("Number of Rioters")
     axs[2].legend()
+
+    # Subplot 4: Varying exit width
+    if entry_home_list is None:
+        exit_strategy_1 = [(i, 0) for i in range(10, 15)] + [(i, 0) for i in range(17, 22)] + [(i, 0) for i in range(24, 29)] # 2 spaces between
+        exit_strategy_2 = [(i, 0) for i in range(14, 19)] + [(i, 0) for i in range(24, 29)] + [(i, 0) for i in range(34, 39)] # 5 spaces between 
+        exit_strategy_3 = [(i, 0) for i in range(10, 15)] + [(i, 0) for i in range(25, 30)] + [(i, 0) for i in range(40, 45)] # 10 spaces between 
+        entry_home_list = [exit_strategy_1, exit_strategy_2, exit_strategy_3]
+        spacing_labels = ["2 spaces", "5 spaces", "10 spaces"]
+    else:
+        spacing_labels = [f"Strategy {i+1}" for i in range(len(entry_home_list))]
+    
+    if entry_away_list is None:
+        entry_away_list = [entry_away] * len(entry_home_list)
+
+    for idx, entry_home in enumerate(entry_home_list):
+        entry_away = entry_away_list[idx]
+        city_map = CityMap(width, height, n_streets=n_streets, street_width=street_width,
+                           exit_space_height=exit_space_height)
+        mean, std = run_simulations(city_map, n_runs, n_steps,
+                                    width, height, n_home, n_away,
+                                    entry_home, entry_away)
+        line, = axs[3].plot(steps, mean, label=spacing_labels[idx])
+        axs[3].fill_between(steps, mean-std, mean+std, alpha=0.3, color=line.get_color())
+        axs[3].hlines(np.max(mean), steps[0], steps[-1], color=line.get_color(), linestyle="--", alpha=0.7)
+    axs[3].set_title("Home Entry Spacing")
+    axs[3].set_xlabel("Step")
+    axs[3].set_ylabel("Number of Rioters")
+    axs[3].legend()
 
     plt.tight_layout()
     plt.show()
