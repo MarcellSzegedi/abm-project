@@ -52,9 +52,8 @@ class SensitivityTests:
         street_width: int,
         exit_space_height: int,
         entry_separation_ratio: float,
-        n_home_clusters: int = 2,
-        n_away_clusters: int = 1,
-        cluster_size: int = 5,
+        home_exit_ranges: list[range] = [range(14, 19), range(22, 27)],
+        away_exit_ranges: list[range] = [range(30, 35)],
     ) -> tuple[CityMap, list[tuple[int, int]], list[tuple[int, int]]]:
 
         city_map = CityMap(
@@ -65,29 +64,23 @@ class SensitivityTests:
             exit_space_height=exit_space_height,
         )
 
-        entry_points_home = [] 
-        entry_points_away = [] 
+        cluster_spacing = int(self.width * entry_separation_ratio)  
 
-        cluster_spacing = int(self.width * entry_separation_ratio) # Space between centers of clusters
-        if n_home_clusters > 0:
-            space_between_home = (n_home_clusters - 1) * cluster_spacing # Total space between centers of clusters
-            home_start_x = (self.width - space_between_home) // 2 # X position of the first cluster
+        def shift_exit_ranges(exit_ranges, cluster_spacing):
+            """Convert ranges to shifted entry points spaced by cluster_spacing."""
+            entry_points = []
+            total_clusters = len(exit_ranges)
+            total_spacing = (total_clusters - 1) * cluster_spacing
+            start_x = (self.width - total_spacing) // 2
 
-            for i in range(n_home_clusters):
-                center = home_start_x + i * cluster_spacing 
-                start = max(center - cluster_size // 2, 0)
-                end = min(start + cluster_size, self.width)
-                entry_points_home.extend((x, 0) for x in range(start, end))
-        
-        if n_away_clusters > 0:
-            space_between_away = (n_away_clusters - 1) * cluster_spacing
-            away_start_x = (self.width - space_between_away) // 2
+            for i, r in enumerate(exit_ranges):
+                dx = start_x + i * cluster_spacing
+                shifted_points = [(min(x + dx, self.width - 1), 0) for x in r]
+                entry_points.extend(shifted_points)
+            return entry_points
 
-            for i in range(n_away_clusters):
-                center = away_start_x + i * cluster_spacing
-                start = max(center - cluster_size // 2, 0)
-                end = min(start + cluster_size, self.width)
-                entry_points_away.extend((x, 0) for x in range(start, end))
+        entry_points_home = shift_exit_ranges(home_exit_ranges, cluster_spacing)
+        entry_points_away = shift_exit_ranges(away_exit_ranges, cluster_spacing)
 
         return city_map, entry_points_home, entry_points_away
 
