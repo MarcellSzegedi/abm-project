@@ -33,8 +33,8 @@ class SensitivityTests:
             height: int = 100,
             n_home_fans: int = 4500,
             n_away_fans: int = 500,
-            steps: int = 100, 
-            num_samples: int = 256, 
+            steps: int = 250, 
+            num_samples: int = 512, 
             ): 
         """Initializes the sensitivity test class."""
         self.steps = steps
@@ -124,7 +124,6 @@ class SensitivityTests:
                     total_riot_activity[i] = 0
 
             except Exception: 
-                # print(f"Invalid parameter combination: Streets: {n_streets}, Street Width: {street_width}, Exit Space: {exit_space_height}, Space Between Doors: {entry_separation}")
                 total_riot_activity[i] = 0
 
         return total_riot_activity
