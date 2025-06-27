@@ -36,11 +36,14 @@ class RiotModel(Model):
         n_away_fans: int,
         entry_points_home: list[tuple[int, int]],
         entry_points_away: list[tuple[int, int]],
+        p_injury_ub: float,
+        riot_willingness_thd: float,
         city_map: CityMap,
         animate: bool = False,
     ) -> None:
         """Initializes the Riot model."""
         super().__init__()
+        self.rng = np.random.default_rng()
 
         self.scheduler = RandomActivation(self)
 
@@ -53,6 +56,8 @@ class RiotModel(Model):
         self.n_away_fans = n_away_fans
         self.entry_points_home = entry_points_home  # (col, row) format
         self.entry_points_away = entry_points_away  # (col, row) format
+        self.p_injury_ub = p_injury_ub
+        self.riot_willingness_thd = riot_willingness_thd
 
         self.agent_state_datacollector = DataCollector(
             {
@@ -84,6 +89,8 @@ class RiotModel(Model):
         n_away_fans: int,
         entry_points_home: list[tuple[int, int]],
         entry_points_away: list[tuple[int, int]],
+        p_injury_ub: float,
+        riot_willingness_thd: float,
         n_step: int,
         city_map: CityMap,
         animate: bool = False,
@@ -97,6 +104,8 @@ class RiotModel(Model):
             n_away_fans,
             entry_points_home,
             entry_points_away,
+            p_injury_ub,
+            riot_willingness_thd,
             city_map,
             animate,
         )
@@ -232,7 +241,9 @@ if __name__ == "__main__":
         (i, 0) for i in HOME_EXIT_2_RANGE
     ]  # 2 exits for home fans
     entry_points_away = [(i, 0) for i in AWAY_EXIT_RANGE]  # 1 exit for away fans
-    n_step = 20  # TODO: Needs to be increased accordingly
+    p_injury_upper_bound = 0.1
+    willingness_to_riot_thd = 1
+    n_step = 100
 
     logger.info("Starting Riot Simulation")
     logger.info(f"Map size: {width}x{height}, with {n_streets} streets")
@@ -249,6 +260,8 @@ if __name__ == "__main__":
         n_away_fans,
         entry_points_home,
         entry_points_away,
+        p_injury_upper_bound,
+        willingness_to_riot_thd,
         n_step,
         city_map,
         animate=True,

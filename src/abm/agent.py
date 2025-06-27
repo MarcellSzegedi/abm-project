@@ -9,7 +9,6 @@ from mesa import Agent
 from abm.utils.global_model_parameters import (
     INJURY_MINIMUM_AGENT_THD,
     MAX_AVAILABLE_AGENT_IN_CELL,
-    MAX_INJURY_PROB,
     MOVEMENT_ARGUMENTS,
     RIOT_MINIMUM_AGENT_THD,
     ROW_FILTERING_CONDITIONS,
@@ -38,6 +37,7 @@ class FanAgent(Agent):
         self.unique_id = unique_id
         self.state = state
         self.team = team
+        self.willingness_to_riot = self.model.rng.random()
         self.step_counter = 0
 
     def step(self) -> None:
@@ -99,6 +99,7 @@ class FanAgent(Agent):
                 np.sum(own_team_rioters) >= np.sum(opp_team_rioters)
                 and np.sum(own_team_rioters) + np.sum(opp_team_rioters) >= RIOT_MINIMUM_AGENT_THD
                 and np.sum(opp_team_rioters)
+                and self.willingness_to_riot > self.model.riot_willingness_thd
             ):
                 self.state = "rioter"
                 self.model.add_agent_to_utility_maps(agent=self)
@@ -150,7 +151,7 @@ class FanAgent(Agent):
         injury_prob = (
             (num_home_team_rioters + num_away_team_rioters)
             / MAX_AVAILABLE_AGENT_IN_CELL
-            * MAX_INJURY_PROB
+            * self.model.p_injury_ub
         )
 
         # Decrease probability if there are not rioters of the opposite team
