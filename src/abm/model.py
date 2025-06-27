@@ -41,6 +41,7 @@ class RiotModel(Model):
     ) -> None:
         """Initializes the Riot model."""
         super().__init__()
+        self.rng = np.random.default_rng()
 
         self.scheduler = RandomActivation(self)
 
