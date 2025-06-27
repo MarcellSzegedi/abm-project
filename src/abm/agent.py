@@ -130,10 +130,10 @@ class FanAgent(Agent):
             )
 
             if (
-                True & n_own_rioters
-                >= n_opp_rioters & n_own_rioters + n_opp_rioters
-                >= RIOT_MINIMUM_AGENT_THD & n_opp_rioters
-                > 0
+                True
+                and n_own_rioters >= n_opp_rioters
+                and n_own_rioters + n_opp_rioters >= RIOT_MINIMUM_AGENT_THD
+                and n_opp_rioters > 0
             ):
                 self.state = "rioter"
                 self.model.add_agent_to_utility_maps(agent=self)
