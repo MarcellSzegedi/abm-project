@@ -20,7 +20,7 @@ from abm.utils.global_model_parameters import (
 )
 from abm.utils.logging_config import setup_logging
 from abm.utils.utility_func import count_agents_in_state
-from abm.visualisation.animation import CellInfoContainer, get_grid_data
+from abm.visualisation.animation import CellInfoContainer, animate_model, get_grid_data
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -350,7 +350,7 @@ if __name__ == "__main__":
     logger.info(f"Simulation steps: {n_step}")
 
     city_map = CityMap(width, height, n_streets, street_width, exit_space_height)
-    agent_data, _ = RiotModel.run_riot_model(
+    agent_data, frames = RiotModel.run_riot_model(
         width,
         height,
         n_home_fans,
@@ -366,4 +366,4 @@ if __name__ == "__main__":
     logger.info("Riot Simulation Completed. PLotting Results")
     agent_data.plot()
     plt.show()
-    # animate_model(frames, city_map.grid, height, width)
+    animate_model(frames, city_map.grid, height, width)
