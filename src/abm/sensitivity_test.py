@@ -117,21 +117,21 @@ class SensitivityTests:
                     detailed_logging=False,
                 )
 
-                # rioters = agent_data["Rioter"]
-                injured = agent_data["Injured"]
+                rioters = agent_data["Rioter"]
+                # injured = agent_data["Injured"]
 
                 # Calculate the total number of rioters in the simulation
-                # if not injured.empty():
-                # return {i: rioters.sum()}
-                # else:
-                #     return {i: 0}
+                if not rioters.empty:
+                    return {i: rioters.sum()}
+                else:
+                    return {i: 0}
 
-                return {i: injured.iloc[-1]}
+                # return {i: injured.iloc[-1]}
 
             except Exception:
                 return {i: 0}
 
-        results = Parallel(n_jobs=-2)(
+        results = Parallel(n_jobs=-1)(
             delayed(run_one_simulation)(i, params_vector) for i, params_vector in enumerate(sample)
         )
 
@@ -252,7 +252,7 @@ if __name__ == "__main__":
             [5, 15],  # Street width (in cells)
             [5, 15],  # Exit space height (in cells)
             [0.05, 0.3],  # 5% to 30% separation
-            [0.0, 1.0],  # Injury probability upper bound (0% to 20%)
+            [0.0, 1.0],  # Injury probability upper bound (0% to 100%)
             [0.0, 1.0],  # Riot willingness threshold (0% to 100%)
         ],
     }
