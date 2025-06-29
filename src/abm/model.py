@@ -130,12 +130,9 @@ class RiotModel(Model):
         riot_model.agent_state_datacollector.collect(riot_model)
         for _ in trange(n_step):
             riot_model._spawn_agents(detailed_logging)
-<<<<<<< HEAD
-=======
             if riot_model.animation_frames is not None:
                 riot_model.animation_frames.append(get_grid_data(riot_model))
 
->>>>>>> 78e04c6e5c36da05e16aeac2701c3ad4c430f5e4
             riot_model.step()
 
         agent_state_data: pd.DataFrame = (
