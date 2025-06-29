@@ -104,11 +104,12 @@ class FanAgent(Agent):
         First, checks whether the agent is injured. If not, the agent may change state.
         The agent becomes a rioter if all the following conditions are met:
 
-        - There are more rioters of the same team in the Moore neighbourhood than there are
-            rioters of the opposite team.
+        - There are at least the same number of rioters of the same team in the Moore neighbourhood
+            than there are rioters of the opposite team.
         - The number of rioters in the Moore neighbourhood is higher or equal than the
             corresponding threshold.
         - The number of opposite team's rioters in the Moore neighbourhood is positive.
+        - The agent's willingness to riot is higher than the model's threshold.
 
         Args:
             rows: Tuple of row coordinates of the cells accessible in the Moore neighbourhood

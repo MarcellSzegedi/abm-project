@@ -2,6 +2,7 @@
 
 import logging
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from mesa import Model
@@ -74,6 +75,8 @@ class RiotModel(Model):
 
         self.animation_frames: list[list[CellInfoContainer]] | None = [] if animate else None
 
+        self.running = True
+
     @classmethod
     def run_riot_model(
         cls,
@@ -134,6 +137,8 @@ class RiotModel(Model):
                 riot_model.animation_frames.append(get_grid_data(riot_model))
 
             riot_model.step()
+            if not riot_model.running:
+                break
 
         agent_state_data: pd.DataFrame = (
             riot_model.agent_state_datacollector.get_model_vars_dataframe()
@@ -144,6 +149,9 @@ class RiotModel(Model):
     def step(self) -> None:
         """Executes events in one step of the model and collects the required data."""
         self.scheduler.step()
+
+        if self._should_terminate():
+            self.running = False
 
         self.agent_state_datacollector.collect(self)
         if self.animation_frames is not None:
@@ -309,12 +317,36 @@ class RiotModel(Model):
             total_injured += len(injured_agents)
         return total_injured
 
+    def _should_terminate(self) -> bool:
+        """Checks if the model should run further or not.
+
+        If the following conditions are met, the simulation can be considered complete. One can
+        reasonably assume that all valuable information has been extracted from the run, and that
+        continuing further would not justify the computational resources required.
+
+        Conditions:
+        - The number of rioters and bystanders (no matter the team) is lower or equal than 1% of
+            the number of total agents.
+        - All the fans have entered the map.
+
+        Returns:
+            True if the simulation should terminate, False otherwise.
+        """
+        return (
+            count_agents_in_state(self, target_state="rioter")
+            + count_agents_in_state(self, target_state="bystander")
+            <= 0.01 * (self.n_home_fans + self.n_away_fans)
+        ) and (
+            self.entered_away_fan_counter + self.entered_home_fan_counter
+            >= self.n_home_fans + self.n_away_fans
+        )
+
 
 if __name__ == "__main__":
     width = 50
     height = 100
-    n_home_fans = 9000
-    n_away_fans = 1000
+    n_home_fans = 4500
+    n_away_fans = 500
     n_streets = 4
     street_width = 7
     exit_space_height = 10
@@ -326,8 +358,8 @@ if __name__ == "__main__":
     ]  # 2 exits for home fans
     entry_points_away = [(i, 0) for i in AWAY_EXIT_RANGE]  # 1 exit for away fans
     p_injury_upper_bound = 0.1
-    willingness_to_riot_thd = 1
-    n_step = 100
+    willingness_to_riot_thd = 0.1
+    n_step = 1000
 
     logger.info("Starting Riot Simulation")
     logger.info(f"Map size: {width}x{height}, with {n_streets} streets")
@@ -337,7 +369,7 @@ if __name__ == "__main__":
     logger.info(f"Simulation steps: {n_step}")
 
     city_map = CityMap(width, height, n_streets, street_width, exit_space_height)
-    _, frames = RiotModel.run_riot_model(
+    agent_data, frames = RiotModel.run_riot_model(
         width,
         height,
         n_home_fans,
@@ -351,4 +383,6 @@ if __name__ == "__main__":
         animate=True,
     )
     logger.info("Riot Simulation Completed. PLotting Results")
+    agent_data.plot()
+    plt.show()
     animate_model(frames, city_map.grid, height, width)
