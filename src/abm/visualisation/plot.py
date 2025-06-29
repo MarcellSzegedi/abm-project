@@ -14,14 +14,16 @@ class PlotRiot:
     and exit space height.
     """
     def __init__(
-        self,
-        width: int = 50,
-        height: int = 100,
-        n_home: int = 4500,
-        n_away: int = 500,
-        n_streets: int = 3,
+        self, 
+        width: int = 50, 
+        height: int = 100, 
+        n_home: int = 4500, 
+        n_away: int = 500, 
+        n_streets: int = 3, 
         street_width: int = 7, 
-        exit_space_height: int = 10,
+        exit_space_height: int = 10, 
+        p_injury_ub: float = 0.03, 
+        riot_willingness_thd: float = 0.5, 
         n_steps: int = 250,
         n_runs: int = 30
     ):
@@ -33,6 +35,8 @@ class PlotRiot:
         self.n_streets = n_streets
         self.street_width = street_width
         self.exit_space_height = exit_space_height
+        self.p_injury_ub = p_injury_ub
+        self.riot_willingness_thd = riot_willingness_thd
         self.n_steps = n_steps
         self.n_runs = n_runs
         self.steps = np.arange(n_steps + 1)
@@ -49,13 +53,15 @@ class PlotRiot:
         """
         data = []
         for _ in range(self.n_runs):
-            agent_data, _, _ = RiotModel.run_riot_model(
+            agent_data, _ = RiotModel.run_riot_model(
                 self.width,
                 self.height,
                 self.n_home,
                 self.n_away,
                 self.entry_home,
                 self.entry_away,
+                self.p_injury_ub, 
+                self.riot_willingness_thd,
                 self.n_steps,
                 city_map,
                 animate=False,
@@ -64,7 +70,7 @@ class PlotRiot:
             data.append(agent_data['Rioter'].to_numpy())
         arr = np.array(data)
         return arr.mean(axis=0), arr.std(axis=0)
-    
+
     def plot_all(self):
         """Plots 4 subplots measuring number of rioters.
 
