@@ -1,5 +1,6 @@
 """Module for performing sensitivity tests on the Riot model."""
 
+import os
 from typing import Any, Dict, Optional
 
 import matplotlib.pyplot as plt
@@ -11,7 +12,7 @@ from SALib.sample import saltelli
 
 from abm.city_map import CityMap
 from abm.model import RiotModel
-import os
+
 
 class SensitivityTests:
     """Class to perform sensitivity tests on the Riot model using Sobol's method.
