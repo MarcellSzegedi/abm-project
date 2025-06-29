@@ -43,7 +43,7 @@ class PlotRiot:
         self.n_steps = n_steps
         self.n_runs = n_runs
         self.steps = np.arange(n_steps + 1)
-        self.results_type = results_type
+        self.results_type = self._validate_results_type(results_type)
 
         # Set default entry points
         self.entry_home = [(i, 0) for i in range(14, 19)] + [(i, 0) for i in range(22, 27)]
@@ -267,6 +267,15 @@ class PlotRiot:
         ax.set_ylabel(f"{self.results_type} count")
         ax.legend()
         plt.show()
+
+    @staticmethod
+    def _validate_results_type(results_type: str) -> str:
+        """Checks if the 'results_type' input is valid."""
+        if results_type not in ["Rioter", "Injured"]:
+            raise ValueError(
+                f"Invalid results_type: '{results_type}'. Must be either 'Rioter' or 'Injured'."
+            )
+        return results_type
 
 
 if __name__ == "__main__":
