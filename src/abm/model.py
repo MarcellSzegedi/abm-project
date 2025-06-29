@@ -36,6 +36,8 @@ class RiotModel(Model):
         n_away_fans: int,
         entry_points_home: list[tuple[int, int]],
         entry_points_away: list[tuple[int, int]],
+        p_injury_ub: float,
+        riot_willingness_thd: float,
         city_map: CityMap,
         animate: bool = False,
     ) -> None:
@@ -54,6 +56,8 @@ class RiotModel(Model):
         self.n_away_fans = n_away_fans
         self.entry_points_home = entry_points_home
         self.entry_points_away = entry_points_away
+        self.p_injury_ub = p_injury_ub
+        self.riot_willingness_thd = riot_willingness_thd
 
         self.agent_state_datacollector = DataCollector(
             {
@@ -79,6 +83,8 @@ class RiotModel(Model):
         n_away_fans: int,
         entry_points_home: list[tuple[int, int]],
         entry_points_away: list[tuple[int, int]],
+        p_injury_ub: float,
+        riot_willingness_thd: float,
         n_step: int,
         city_map: CityMap,
         animate: bool = False,
@@ -95,6 +101,8 @@ class RiotModel(Model):
                                 in (col, row) format.
             entry_points_away: Coordinates of the spawn points of the away fan agents
                                 in (col, row) format.
+            p_injury_ub: Upper bound of the probability of injury for the agents.
+            riot_willingness_thd: Threshold of the willingness to riot for the agents.
             n_step: Number of simulation steps.
             city_map: Boolean numpy array representing the city map,
                                 with True values in the places where agents can move
@@ -113,6 +121,8 @@ class RiotModel(Model):
             n_away_fans,
             entry_points_home,
             entry_points_away,
+            p_injury_ub,
+            riot_willingness_thd,
             city_map,
             animate,
         )
@@ -315,7 +325,9 @@ if __name__ == "__main__":
         (i, 0) for i in HOME_EXIT_2_RANGE
     ]  # 2 exits for home fans
     entry_points_away = [(i, 0) for i in AWAY_EXIT_RANGE]  # 1 exit for away fans
-    n_step = 50  # TODO: Needs to be increased accordingly
+    p_injury_upper_bound = 0.1
+    willingness_to_riot_thd = 1
+    n_step = 100
 
     logger.info("Starting Riot Simulation")
     logger.info(f"Map size: {width}x{height}, with {n_streets} streets")
@@ -332,6 +344,8 @@ if __name__ == "__main__":
         n_away_fans,
         entry_points_home,
         entry_points_away,
+        p_injury_upper_bound,
+        willingness_to_riot_thd,
         n_step,
         city_map,
         animate=True,
