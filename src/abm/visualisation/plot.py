@@ -2,143 +2,247 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-from abm.model import RiotModel
+
 from abm.city_map import CityMap
+from abm.model import RiotModel
 
-def run_simulations(
-        city_map: CityMap, 
-        n_runs: int, 
-        n_steps: int, 
-        width: int, 
-        height: int, 
-        n_home: int, 
-        n_away: int, 
-        entry_home: list[tuple[int, int]], 
-        entry_away: list[tuple[int, int]],
-        ):
-    """Run the model multiple times and return mean and std dev of rioter counts."""
-    all_rioters = []
 
-    for _ in range(n_runs):
-        agent_data, _, _ = RiotModel.run_riot_model(
-            width,
-            height,
-            n_home,
-            n_away,
-            entry_home,
-            entry_away,
-            n_steps,
-            city_map,
-            animate=False,
-            detailed_logging=False,
-        )
-        all_rioters.append(agent_data["Rioter"].to_numpy())
+class PlotRiot: 
+    """Generates plots to visualize the effect of agent movement parameters.
 
-    all_rioters = np.array(all_rioters)
-    mean = np.mean(all_rioters, axis=0)
-    std = np.std(all_rioters, axis=0)
-    return mean, std
-
-def plot_riot_time_series(
-    width: int = 50,
-    height: int = 100,
-    n_home: int = 4500,
-    n_away: int = 500,
-    entry_home: list[tuple[int, int]] = [(i, 0) for i in range(14, 19)] + [(i, 0) for i in range(22, 27)],
-    entry_away: list[tuple[int, int]] = [(i, 0) for i in range(30, 35)],
-    entry_home_list: list[tuple[int, int]] = None,
-    entry_away_list: list[tuple[int, int]] = None,
-    n_steps: int = 250,
-    street_width: int = 7,
-    n_streets: int = 3,
-    exit_space_height: int = 10,
-    street_width_values: list[int] = [5, 10, 15],
-    exit_height_values: list[int] = [2, 6, 10],
-    n_street_values: list[int] = [1, 3, 5],
-    spacing_configs = [
-        (range(15, 20), range(29, 34)),  # 2 spaces on each side
-        (range(12, 17), range(32, 37)),  # 5 spaces
-        (range(7, 12), range(37, 42)),   # 10 spaces
-    ],
-    n_runs: int = 10,
-):
+    Includes effects based on street width, number of streets, space between exits,
+    and exit space height.
     """
-    Plots three subplots showing number of rioters over time for different parameters.
-    Each line is the mean of multiple simulations, with shaded standard deviation.
-    """
-    _, axs = plt.subplots(2, 2, figsize=(18, 6))
-    steps = np.arange(n_steps + 1)
+    def __init__(
+        self,
+        width: int = 50,
+        height: int = 100,
+        n_home: int = 4500,
+        n_away: int = 500,
+        n_streets: int = 3,
+        street_width: int = 7, 
+        exit_space_height: int = 10,
+        n_steps: int = 250,
+        n_runs: int = 30
+    ):
+        """Initilises the plotting class with initial values for parameters."""
+        self.width = width
+        self.height = height
+        self.n_home = n_home
+        self.n_away = n_away
+        self.n_streets = n_streets
+        self.street_width = street_width
+        self.exit_space_height = exit_space_height
+        self.n_steps = n_steps
+        self.n_runs = n_runs
+        self.steps = np.arange(n_steps + 1)
 
-    # Subplot 1: Varying street width
-    for sw in street_width_values:
-        city_map = CityMap(width, height, n_streets=n_streets, street_width=sw, exit_space_height=exit_space_height)
-        mean, std = run_simulations(city_map, n_runs, n_steps, width, height, n_home, n_away, entry_home, entry_away)
-        max_mean = np.max(mean)
-        line, = axs[0,0].plot(steps, mean, label=f"Street Width {sw}")
-        axs[0,0].fill_between(steps, mean - std, mean + std, alpha=0.3, color=line.get_color())
-        axs[0,0].hlines(max_mean, steps[0], steps[-1], color=line.get_color(), linestyle="--", alpha=0.7)
+        # Set default entry points
+        self.entry_home = [(i, 0) for i in range(14, 19)] + [(i, 0) for i in range(22, 27)]
+        self.entry_away = [(i, 0) for i in range(30, 35)]
 
-    axs[0,0].set_title("Street Width")
-    axs[0,0].set_xlabel("Step")
-    axs[0,0].set_ylabel("Number of Rioters")
-    axs[0,0].legend()
 
-    # Subplot 2: Varying exit space height
-    for eh in exit_height_values:
-        city_map = CityMap(width, height, n_streets=n_streets, street_width=street_width, exit_space_height=eh)
-        mean, std = run_simulations(city_map, n_runs, n_steps, width, height, n_home, n_away, entry_home, entry_away)
-        max_mean = np.max(mean)
-        line, = axs[0,1].plot(steps, mean, label=f"Exit Height {eh}")
-        axs[0,1].fill_between(steps, mean - std, mean + std, alpha=0.3, color=line.get_color())
-        axs[0,1].hlines(max_mean, steps[0], steps[-1], color=line.get_color(), linestyle="--", alpha=0.7)
+    def run_simulations(self, city_map):
+        """Run n runs of the RiotModel on city map.
+        
+        :returns: mean and std of rioter counts.
+        """
+        data = []
+        for _ in range(self.n_runs):
+            agent_data, _, _ = RiotModel.run_riot_model(
+                self.width,
+                self.height,
+                self.n_home,
+                self.n_away,
+                self.entry_home,
+                self.entry_away,
+                self.n_steps,
+                city_map,
+                animate=False,
+                detailed_logging=False
+            )
+            data.append(agent_data['Rioter'].to_numpy())
+        arr = np.array(data)
+        return arr.mean(axis=0), arr.std(axis=0)
+    
+    def plot_all(self):
+        """Plots 4 subplots measuring number of rioters.
 
-    axs[0,1].set_title("Exit Space Height")
-    axs[0,1].set_xlabel("Step")
-    axs[0,1].set_ylabel("Number of Rioters")
-    axs[0,1].legend()
+        1. Varying street width.
+        2. Varying exit spacing.
+        3. Varying number of streets.
+        4. Varying exit door spacing.
+        """
+        _, axs = plt.subplots(2, 2, figsize=(16, 8))
 
-    # Subplot 3: Varying number of streets
-    for n in n_street_values:
-        city_map = CityMap(width, height, n_streets=n, street_width=street_width, exit_space_height=exit_space_height)
-        mean, std = run_simulations(city_map, n_runs, n_steps, width, height, n_home, n_away, entry_home, entry_away)
-        max_mean = np.max(mean)
-        line, = axs[1,0].plot(steps, mean, label=f"Streets {n}")
-        axs[1,0].fill_between(steps, mean - std, mean + std, alpha=0.3, color=line.get_color())
-        axs[1,0].hlines(max_mean, steps[0], steps[-1], color=line.get_color(), linestyle="--", alpha=0.7)
+        # Subplot 1: Varying street width
+        for street_width in [5, 10, 15]:
+            city_map = CityMap(
+                self.width, 
+                self.height, 
+                n_streets=self.n_streets, 
+                street_width=street_width, 
+                exit_space_height=self.exit_space_height
+                )
+            mean, std = self.run_simulations(city_map)
+            line, = axs[0,0].plot(self.steps, mean, label=f"Width {street_width}")
+            axs[0,0].fill_between(
+                self.steps, 
+                mean-std, 
+                mean+std, 
+                alpha=0.3, 
+                color=line.get_color()
+                )
+        axs[0,0].set_title('Street Width')
+        axs[0,0].set_xlabel('Step')
+        axs[0,0].set_ylabel('Rioters')
+        axs[0,0].legend()
 
-    axs[1,0].set_title("Number of Streets")
-    axs[1,0].set_xlabel("Step")
-    axs[1,0].set_ylabel("Number of Rioters")
-    axs[1,0].legend()
+        # Subplot 2: Varying exit height
+        for exit_height in [2, 6, 10]:
+            city_map = CityMap(
+                self.width, 
+                self.height, 
+                n_streets=self.n_streets, 
+                street_width=self.street_width, 
+                exit_space_height=exit_height
+                )
+            mean, std = self.run_simulations(city_map)
+            line, = axs[0,1].plot(self.steps, mean, label=f"Exit {exit_height}")
+            axs[0,1].fill_between(
+                self.steps, 
+                mean-std, 
+                mean+std, 
+                alpha=0.3, 
+                color=line.get_color()
+                )
+        axs[0,1].set_title('Exit Height')
+        axs[0,1].set_xlabel('Step')
+        axs[0,1].set_ylabel('Rioters')
+        axs[0,1].legend()
 
-    # Subplot 4: Varying exit width
-    center_block = [(i, 0) for i in range(22, 27)]
-    spacing_labels = ["2 spaces", "5 spaces", "10 spaces"]
-    entry_home_list = [
-        [(i, 0) for i in left] + center_block for (left, _) in spacing_configs
-    ]
-    entry_away_list = [
-        [(i, 0) for i in right] for (_, right) in spacing_configs
-    ]   
+        # Subplot 3: Varying number of streets 
+        for n_streets in [1, 3, 5]:
+            city_map = CityMap(
+                self.width, 
+                self.height, 
+                n_streets=n_streets,
+                street_width=self.street_width, 
+                exit_space_height=self.exit_space_height
+                )
+            mean, std = self.run_simulations(city_map)
+            line, = axs[1,0].plot(self.steps, mean, label=f"Streets {n_streets}")
+            axs[1,0].fill_between(
+                self.steps, 
+                mean-std, 
+                mean+std,
+                alpha=0.3, 
+                color=line.get_color()
+                )
+        axs[1,0].set_title('Number of Streets')
+        axs[1,0].set_xlabel('Step')
+        axs[1,0].set_ylabel('Rioters')
+        axs[1,0].legend()
 
-    for idx, entry_home in enumerate(entry_home_list):
-        entry_away = entry_away_list[idx]
-        city_map = CityMap(width, height, n_streets=n_streets, street_width=street_width,
-                           exit_space_height=exit_space_height)
-        mean, std = run_simulations(city_map, n_runs, n_steps,
-                                    width, height, n_home, n_away,
-                                    entry_home, entry_away)
-        line, = axs[1, 1].plot(steps, mean, label=spacing_labels[idx])
-        axs[1, 1].fill_between(steps, mean-std, mean+std, alpha=0.3, color=line.get_color())
-        axs[1, 1].hlines(np.max(mean), steps[0], steps[-1], color=line.get_color(), linestyle="--", alpha=0.7)
+        # Subplot 4: Varying exit door placement
+        exit_scenarios = [
+            (range(15,20), range(29,34), '2 spaces'),
+            (range(12,17), range(32,37), '5 spaces'),
+            (range(7,12), range(37,42), '10 spaces')
+        ]
+        for left, right, label in exit_scenarios:
+            self.entry_home = [(i,0) for i in left] + [(i,0) for i in range(22,27)]
+            self.entry_away = [(i,0) for i in right]
+            city_map = CityMap(
+                self.width, 
+                self.height, 
+                n_streets=self.n_streets, 
+                street_width=self.street_width, 
+                exit_space_height=self.exit_space_height
+                )
+            mean, std = self.run_simulations(city_map)
+            line, = axs[1,1].plot(self.steps, mean, label=label)
+            axs[1,1].fill_between(
+                self.steps, 
+                mean-std, 
+                mean+std, 
+                alpha=0.3, 
+                color=line.get_color()
+                )
+        axs[1,1].set_title('Entry Spacing')
+        axs[1,1].set_xlabel('Step')
+        axs[1,1].set_ylabel('Rioters')
+        axs[1,1].legend()
 
-    axs[1, 1].set_title("Home Entry Spacing")
-    axs[1, 1].set_xlabel("Step")
-    axs[1, 1].set_ylabel("Number of Rioters")
-    axs[1, 1].legend()
+        plt.tight_layout()
+        plt.show()
 
-    plt.tight_layout()
-    plt.show()
+    def plot_single(self, category, values):
+        """Plot one parameter at a time.
+        
+        :param category: Parameter to be plotted
+        :param values: Chosen ranges or values for chosen parameters
+        """
+        _, ax = plt.subplots(figsize=(8,5))
+        if category == 'entry_spacing':
+            for left, right, label in values:
+                entry_home = [(i,0) for i in left] + [(i,0) for i in range(22,27)]
+                entry_away = [(i,0) for i in right]
+                city_map = CityMap(
+                    self.width, 
+                    self.height, 
+                    n_streets=self.n_streets, 
+                    street_width=self.street_width, 
+                    exit_space_height=self.exit_space_height
+                    )
+                mean, std = self.run_simulations(
+                    city_map, 
+                    entry_home=entry_home, 
+                    entry_away=entry_away
+                    )
+                line, = ax.plot(self.steps, mean, label=label)
+                ax.fill_between(self.steps, mean-std, mean+std, alpha=0.3, color=line.get_color())
+        else:
+            for val in values:
+                if category == 'street_width':
+                    city_map = CityMap(
+                        self.width, 
+                        self.height, 
+                        n_streets=self.n_streets, 
+                        street_width=val, 
+                        exit_space_height=self.exit_space_height
+                        )
+                elif category == 'exit_space_height':
+                    city_map = CityMap(
+                        self.width, 
+                        self.height, 
+                        n_streets=self.n_streets, 
+                        street_width=self.street_width, 
+                        exit_space_height=val
+                        )
+                elif category == 'n_streets':
+                    city_map = CityMap(
+                        self.width, 
+                        self.height, 
+                        n_streets=val, 
+                        street_width=self.street_width, 
+                        exit_space_height=self.exit_space_height
+                        )
+                else:
+                    raise ValueError('Invalid category')
+                mean, std = self.run_simulations(city_map)
+                line, = ax.plot(self.steps, mean, label=f"{category} {val}")
+                ax.fill_between(self.steps, mean-std, mean+std, alpha=0.3, color=line.get_color())
+        ax.set_title(category.replace('_',' ').title())
+        ax.set_xlabel('Step')
+        ax.set_ylabel('Rioters')
+        ax.legend()
+        plt.show()
+
 
 if __name__ == "__main__": 
-    plot_riot_time_series()
+    plot_riot = PlotRiot()
+    plot_riot.plot_all()
+
+
+
