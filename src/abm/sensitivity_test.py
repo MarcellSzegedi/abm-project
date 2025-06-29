@@ -246,11 +246,11 @@ if __name__ == "__main__":
             "riot_willingness_thd",  # Agent: Threshold for riot willingness
         ],
         "bounds": [
-            [1, 6],  # Number of streets
+            [2, 6],  # Number of streets
             [5, 15],  # Street width (in cells)
             [2, 15],  # Exit space height (in cells)
             [0.05, 0.3],  # 5% to 30% separation
-            [0.0, 0.2],  # Injury probability upper bound (0% to 20%)
+            [0.0, 1.0],  # Injury probability upper bound (0% to 20%)
             [0.0, 1.0],  # Riot willingness threshold (0% to 100%)
         ],
     }
