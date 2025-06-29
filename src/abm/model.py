@@ -101,6 +101,8 @@ class RiotModel(Model):
                                 in (col, row) format.
             entry_points_away: Coordinates of the spawn points of the away fan agents
                                 in (col, row) format.
+            p_injury_ub: Upper bound of the probability of injury for the agents.
+            riot_willingness_thd: Threshold of the willingness to riot for the agents.
             n_step: Number of simulation steps.
             city_map: Boolean numpy array representing the city map,
                                 with True values in the places where agents can move
