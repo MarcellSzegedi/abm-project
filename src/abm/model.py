@@ -2,6 +2,7 @@
 
 import logging
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from mesa import Model
@@ -19,7 +20,7 @@ from abm.utils.global_model_parameters import (
 )
 from abm.utils.logging_config import setup_logging
 from abm.utils.utility_func import count_agents_in_state
-from abm.visualisation.animation import CellInfoContainer, animate_model, get_grid_data
+from abm.visualisation.animation import CellInfoContainer, get_grid_data
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -73,6 +74,8 @@ class RiotModel(Model):
         self.left_away_fan_counter = 0
 
         self.animation_frames: list[list[CellInfoContainer]] | None = [] if animate else None
+
+        self.running = True
 
     @classmethod
     def run_riot_model(
@@ -134,6 +137,8 @@ class RiotModel(Model):
                 riot_model.animation_frames.append(get_grid_data(riot_model))
 
             riot_model.step()
+            if not riot_model.running:
+                break
 
         agent_state_data: pd.DataFrame = (
             riot_model.agent_state_datacollector.get_model_vars_dataframe()
@@ -144,6 +149,14 @@ class RiotModel(Model):
     def step(self) -> None:
         """Executes events in one step of the model and collects the required data."""
         self.scheduler.step()
+
+        if count_agents_in_state(self, target_state="rioter") + count_agents_in_state(
+            self, target_state="bystander"
+        ) <= 0.01 * (self.n_home_fans + self.n_away_fans) and (
+            self.entered_away_fan_counter + self.entered_home_fan_counter
+            >= self.n_home_fans + self.n_away_fans
+        ):
+            self.running = False
 
         self.agent_state_datacollector.collect(self)
         if self.animation_frames is not None:
@@ -313,8 +326,8 @@ class RiotModel(Model):
 if __name__ == "__main__":
     width = 50
     height = 100
-    n_home_fans = 9000
-    n_away_fans = 1000
+    n_home_fans = 4500
+    n_away_fans = 500
     n_streets = 4
     street_width = 7
     exit_space_height = 10
@@ -326,8 +339,8 @@ if __name__ == "__main__":
     ]  # 2 exits for home fans
     entry_points_away = [(i, 0) for i in AWAY_EXIT_RANGE]  # 1 exit for away fans
     p_injury_upper_bound = 0.1
-    willingness_to_riot_thd = 1
-    n_step = 100
+    willingness_to_riot_thd = 0.1
+    n_step = 1000
 
     logger.info("Starting Riot Simulation")
     logger.info(f"Map size: {width}x{height}, with {n_streets} streets")
@@ -337,7 +350,7 @@ if __name__ == "__main__":
     logger.info(f"Simulation steps: {n_step}")
 
     city_map = CityMap(width, height, n_streets, street_width, exit_space_height)
-    _, frames = RiotModel.run_riot_model(
+    agent_data, _ = RiotModel.run_riot_model(
         width,
         height,
         n_home_fans,
@@ -351,4 +364,6 @@ if __name__ == "__main__":
         animate=True,
     )
     logger.info("Riot Simulation Completed. PLotting Results")
-    animate_model(frames, city_map.grid, height, width)
+    agent_data.plot()
+    plt.show()
+    # animate_model(frames, city_map.grid, height, width)
