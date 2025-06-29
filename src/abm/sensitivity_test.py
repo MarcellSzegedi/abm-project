@@ -34,6 +34,7 @@ class SensitivityTests:
         n_away_fans: int = 500,
         steps: int = 1000,
         num_samples: int = 512,
+        results_type: str = "Rioter",
     ):
         """Initializes the sensitivity test class."""
         self.steps = steps
@@ -44,6 +45,7 @@ class SensitivityTests:
         self.n_home_fans = n_home_fans
         self.n_away_fans = n_away_fans
         self.sobol_matrix: Optional[np.ndarray] = None
+        self.results_type = results_type
 
     def _create_city_map(
         self,
@@ -117,16 +119,12 @@ class SensitivityTests:
                     detailed_logging=False,
                 )
 
-                rioters = agent_data["Rioter"]
-                # injured = agent_data["Injured"]
+                data = agent_data[self.results_type]
 
-                # Calculate the total number of rioters in the simulation
-                if not rioters.empty:
-                    return {i: rioters.sum()}
-                else:
-                    return {i: 0}
-
-                # return {i: injured.iloc[-1]}
+                if self.results_type == "Rioter":
+                    return {i: data.sum()}
+                elif self.results_type == "Injured":
+                    return {i: data.iloc[-1]}
 
             except Exception:
                 return {i: 0}
@@ -248,20 +246,24 @@ if __name__ == "__main__":
             "riot_willingness_thd",  # Agent: Threshold for riot willingness
         ],
         "bounds": [
-            [2, 6],  # Number of streets
+            [1, 6],  # Number of streets
             [5, 15],  # Street width (in cells)
-            [5, 15],  # Exit space height (in cells)
+            [2, 15],  # Exit space height (in cells)
             [0.05, 0.3],  # 5% to 30% separation
-            [0.0, 1.0],  # Injury probability upper bound (0% to 100%)
+            [0.0, 0.2],  # Injury probability upper bound (0% to 20%)
             [0.0, 1.0],  # Riot willingness threshold (0% to 100%)
         ],
     }
 
-    sensitivity_test = SensitivityTests(problem)
+    results_type = "Rioter"  # or "Injured"
+
+    sensitivity_test = SensitivityTests(problem, results_type=results_type)
     sobol_df = sensitivity_test.sobol_sensitivity_test()
     print(sobol_df)  # TODO: remove, for debugging purposes only
 
     sensitivity_test.plot_sobol_indices(sobol_df, save_path="sobol_sensitivity_analysis.png")
+
+    print(sensitivity_test.sobol_matrix)  # TODO: remove, for debugging purposes only
 
     if sensitivity_test.sobol_matrix is not None:
         sensitivity_test.plot_interactions(
