@@ -150,12 +150,7 @@ class RiotModel(Model):
         """Executes events in one step of the model and collects the required data."""
         self.scheduler.step()
 
-        if count_agents_in_state(self, target_state="rioter") + count_agents_in_state(
-            self, target_state="bystander"
-        ) <= 0.01 * (self.n_home_fans + self.n_away_fans) and (
-            self.entered_away_fan_counter + self.entered_home_fan_counter
-            >= self.n_home_fans + self.n_away_fans
-        ):
+        if self._should_terminate():
             self.running = False
 
         self.agent_state_datacollector.collect(self)
@@ -321,6 +316,30 @@ class RiotModel(Model):
             injured_agents = [agent for agent in agents_in_cell if agent.state == "injured"]
             total_injured += len(injured_agents)
         return total_injured
+
+    def _should_terminate(self) -> bool:
+        """Checks if the model should run further or not.
+
+        If the following conditions are met, the simulation can be considered complete. One can
+        reasonably assume that all valuable information has been extracted from the run, and that
+        continuing further would not justify the computational resources required.
+
+        Conditions:
+        - The number of rioters and bystanders (no matter the team) is lower or equal than 1% of
+            the number of total agents.
+        - All the fans have entered the map.
+
+        Returns:
+            True if the simulation should terminate, False otherwise.
+        """
+        return (
+            count_agents_in_state(self, target_state="rioter")
+            + count_agents_in_state(self, target_state="bystander")
+            <= 0.01 * (self.n_home_fans + self.n_away_fans)
+        ) and (
+            self.entered_away_fan_counter + self.entered_home_fan_counter
+            >= self.n_home_fans + self.n_away_fans
+        )
 
 
 if __name__ == "__main__":

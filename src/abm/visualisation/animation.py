@@ -1,5 +1,6 @@
 """Functions to animate the flow of the ABM."""
 
+import warnings
 from typing import TYPE_CHECKING, TypedDict
 
 import matplotlib.patches as patches
@@ -102,4 +103,4 @@ def animate_model(
             f.write(html_str)
         print(f"Animation saved to {filename}")
     else:
-        raise Exception("No results to animate.")
+        warnings.warn("No results to animate.", UserWarning)
