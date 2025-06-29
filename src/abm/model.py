@@ -257,7 +257,7 @@ class RiotModel(Model):
                 self.add_agent(
                     pos=entry_point,
                     team=team,
-                    state=np.random.choice(
+                    state=self.rng.choice(
                         np.array(["bystander", "rioter"]),
                         p=np.array([INITIAL_PROB_OF_BASE, INITIAL_PROB_OF_RIOT]),
                     ),

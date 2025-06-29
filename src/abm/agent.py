@@ -1,6 +1,5 @@
 """Contains the agent class for the ABM's base version."""
 
-import random
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -172,7 +171,7 @@ class FanAgent(Agent):
         """
         if self._check_injury_potential():
             prob_to_be_injured = self._injury_prob_calc()
-            if random.random() < prob_to_be_injured:
+            if self.model.rng.random() < prob_to_be_injured:
                 self.model.remove_agent_from_utility_maps(agent=self)
                 self.state = "injured"
                 return True
@@ -249,7 +248,7 @@ class FanAgent(Agent):
             )
 
             if len(row_coords) > 0:
-                chosen_idx = np.random.choice(range(len(row_coords)))
+                chosen_idx = self.model.rng.choice(range(len(row_coords)))
                 self._execute_agent_movement(
                     new_pos=(col_coords[chosen_idx], row_coords[chosen_idx])
                 )
@@ -322,10 +321,10 @@ class FanAgent(Agent):
         if self.step_counter < STEP_THD:
             if self._find_available_downward_cells():
                 return self._execute_agent_movement(
-                    new_pos=random.choice(self._find_available_downward_cells())
+                    new_pos=self.model.rng.choice(self._find_available_downward_cells())
                 )
 
-            choice = random.choice(list(zip(available_cols, available_rows)))
+            choice = self.model.rng.choice(list(zip(available_cols, available_rows)))
 
             return self._execute_agent_movement(new_pos=choice)
 
@@ -346,7 +345,9 @@ class FanAgent(Agent):
                 if self.team
                 else self.model.away_riot_map[available_rows, available_cols]
             )
-            chosen_coord_idx = random.choice(np.where(own_rioters == np.max(own_rioters))[0])
+            chosen_coord_idx = self.model.rng.choice(
+                np.where(own_rioters == np.max(own_rioters))[0]
+            )
         else:
             opp_rioters = (
                 self.model.away_riot_map[available_rows, available_cols]
@@ -355,11 +356,11 @@ class FanAgent(Agent):
             )
 
             if len(nonzero_opp_rioters := opp_rioters[np.nonzero(opp_rioters)]) > 0:
-                chosen_coord_idx = random.choice(
+                chosen_coord_idx = self.model.rng.choice(
                     np.where(opp_rioters == np.min(nonzero_opp_rioters))[0]
                 )
             else:
-                chosen_coord_idx = random.choice(np.where(opp_rioters == 0)[0])
+                chosen_coord_idx = self.model.rng.choice(np.where(opp_rioters == 0)[0])
 
         chosen_pos = (available_cols[chosen_coord_idx], available_rows[chosen_coord_idx])
         return self._execute_agent_movement(new_pos=chosen_pos)
