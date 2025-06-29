@@ -11,7 +11,7 @@ from SALib.sample import saltelli
 
 from abm.city_map import CityMap
 from abm.model import RiotModel
-
+import os
 
 class SensitivityTests:
     """Class to perform sensitivity tests on the Riot model using Sobol's method.
@@ -208,6 +208,7 @@ class SensitivityTests:
         plt.tight_layout()
 
         if save_path:
+            os.makedirs("results", exist_ok=True)
             plt.savefig(f"results/{save_path}")
 
         plt.show()
