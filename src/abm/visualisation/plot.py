@@ -28,6 +28,7 @@ class PlotRiot:
         riot_willingness_thd: float = 0.5,
         n_steps: int = 300,
         n_runs: int = 50,
+        results_type: str = "Rioter",
     ):
         """Initilises the plotting class with initial values for parameters."""
         self.width = width
@@ -42,6 +43,7 @@ class PlotRiot:
         self.n_steps = n_steps
         self.n_runs = n_runs
         self.steps = np.arange(n_steps + 1)
+        self.results_type = self._validate_results_type(results_type)
 
         # Set default entry points
         self.entry_home = [(i, 0) for i in range(14, 19)] + [(i, 0) for i in range(22, 27)]
@@ -50,7 +52,7 @@ class PlotRiot:
     def run_simulations(self, city_map):
         """Run n runs of the RiotModel on city map.
 
-        :returns: mean and std of rioter counts.
+        :returns: mean and std of rioter/injured counts.
         """
 
         def run_one_simulation():
@@ -68,14 +70,14 @@ class PlotRiot:
                 animate=False,
                 detailed_logging=False,
             )
-            return agent_data["Rioter"].to_numpy()
+            return agent_data[self.results_type].to_numpy()
 
         data = Parallel(n_jobs=-1)(delayed(run_one_simulation)() for _ in range(self.n_runs))
         arr = np.array(data)
         return arr.mean(axis=0), arr.std(axis=0)
 
     def plot_all(self):
-        """Plots 4 subplots measuring number of rioters.
+        """Plots 4 subplots measuring number of rioters/injured.
 
         1. Varying street width.
         2. Varying exit spacing.
@@ -108,7 +110,7 @@ class PlotRiot:
             )
         axs[0, 0].set_title("Street Width")
         axs[0, 0].set_xlabel("Step")
-        axs[0, 0].set_ylabel("Rioters")
+        axs[0, 0].set_ylabel(f"{self.results_type} count")
         axs[0, 0].legend()
 
         # Subplot 2: Varying exit height
@@ -135,7 +137,7 @@ class PlotRiot:
             )
         axs[0, 1].set_title("Exit Height")
         axs[0, 1].set_xlabel("Step")
-        axs[0, 1].set_ylabel("Rioters")
+        axs[0, 1].set_ylabel(f"{self.results_type} count")
         axs[0, 1].legend()
 
         # Subplot 3: Varying number of streets
@@ -162,7 +164,7 @@ class PlotRiot:
             )
         axs[1, 0].set_title("Number of Streets")
         axs[1, 0].set_xlabel("Step")
-        axs[1, 0].set_ylabel("Rioters")
+        axs[1, 0].set_ylabel(f"{self.results_type} count")
         axs[1, 0].legend()
 
         # Subplot 4: Varying exit door placement
@@ -196,7 +198,7 @@ class PlotRiot:
             )
         axs[1, 1].set_title("Entry Spacing")
         axs[1, 1].set_xlabel("Step")
-        axs[1, 1].set_ylabel("Rioters")
+        axs[1, 1].set_ylabel(f"{self.results_type} count")
         axs[1, 1].legend()
 
         plt.tight_layout()
@@ -262,11 +264,22 @@ class PlotRiot:
                 )
         ax.set_title(category.replace("_", " ").title())
         ax.set_xlabel("Step")
-        ax.set_ylabel("Rioters")
+        ax.set_ylabel(f"{self.results_type} count")
         ax.legend()
         plt.show()
 
+    @staticmethod
+    def _validate_results_type(results_type: str) -> str:
+        """Checks if the 'results_type' input is valid."""
+        if results_type not in ["Rioter", "Injured"]:
+            raise ValueError(
+                f"Invalid results_type: '{results_type}'. Must be either 'Rioter' or 'Injured'."
+            )
+        return results_type
+
 
 if __name__ == "__main__":
-    plot_riot = PlotRiot()
+    results_type = "Rioter"  # or "Injured"
+
+    plot_riot = PlotRiot(results_type=results_type)
     plot_riot.plot_all()
