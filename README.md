@@ -1,4 +1,4 @@
-# ABM Project — *Title TBD*
+# ABM for the influence of urban design on riot emergence
 
 [![Pytest](https://github.com/MarcellSzegedi/abm-project/actions/workflows/pytest.yaml/badge.svg)](https://github.com/MarcellSzegedi/abm-project/actions/workflows/pytest.yaml)
 &nbsp;
@@ -15,7 +15,9 @@
 
 ## 🚀 &nbsp; Running the Model
 
-*Instructions coming soon.*
+* Simple run of the model + animation: run the file src/abm/model.py
+* Sensitivity test: run the file src/abm/sensitivity_test.py. You can adjust the code at the very bottom to specify whether to show the number of rioters or injuries.
+* Generate plots for the number of rioters/injuries over time: run the file src/abm/visualisation/plot.py. You can adjust the code at the very bottom to specify whether to show the number of rioters or injuries.
 
 ---
 
