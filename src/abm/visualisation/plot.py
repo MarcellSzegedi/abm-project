@@ -203,6 +203,7 @@ class PlotRiot:
 
         plt.tight_layout()
         plt.show()
+        plt.savefig("parameter_variation.png")
 
     def plot_single(self, category, values):
         """Plot one parameter at a time.
