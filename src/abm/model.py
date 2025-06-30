@@ -2,7 +2,6 @@
 
 import logging
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from mesa import Model
@@ -20,7 +19,7 @@ from abm.utils.global_model_parameters import (
 )
 from abm.utils.logging_config import setup_logging
 from abm.utils.utility_func import count_agents_in_state
-from abm.visualisation.animation import CellInfoContainer, animate_model, get_grid_data
+from abm.visualisation.animation import CellInfoContainer, get_grid_data
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -340,49 +339,3 @@ class RiotModel(Model):
             self.entered_away_fan_counter + self.entered_home_fan_counter
             >= self.n_home_fans + self.n_away_fans
         )
-
-
-if __name__ == "__main__":
-    width = 50
-    height = 100
-    n_home_fans = 4500
-    n_away_fans = 500
-    n_streets = 4
-    street_width = 7
-    exit_space_height = 10
-    HOME_EXIT_1_RANGE = range(14, 19)
-    HOME_EXIT_2_RANGE = range(22, 27)
-    AWAY_EXIT_RANGE = range(30, 35)
-    entry_points_home = [(i, 0) for i in HOME_EXIT_1_RANGE] + [
-        (i, 0) for i in HOME_EXIT_2_RANGE
-    ]  # 2 exits for home fans
-    entry_points_away = [(i, 0) for i in AWAY_EXIT_RANGE]  # 1 exit for away fans
-    p_injury_upper_bound = 0.1
-    willingness_to_riot_thd = 0.1
-    n_step = 1000
-
-    logger.info("Starting Riot Simulation")
-    logger.info(f"Map size: {width}x{height}, with {n_streets} streets")
-    logger.info(f"Street width: {street_width}, exit height: {exit_space_height}")
-    logger.info(f"Entry points (home): {entry_points_home}")
-    logger.info(f"Entry points (away): {entry_points_away}")
-    logger.info(f"Simulation steps: {n_step}")
-
-    city_map = CityMap(width, height, n_streets, street_width, exit_space_height)
-    agent_data, frames = RiotModel.run_riot_model(
-        width,
-        height,
-        n_home_fans,
-        n_away_fans,
-        entry_points_home,
-        entry_points_away,
-        p_injury_upper_bound,
-        willingness_to_riot_thd,
-        n_step,
-        city_map,
-        animate=True,
-    )
-    logger.info("Riot Simulation Completed. PLotting Results")
-    agent_data.plot()
-    plt.show()
-    animate_model(frames, city_map.grid, height, width)

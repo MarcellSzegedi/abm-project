@@ -19,6 +19,7 @@ dependencies = [
     "types-tqdm>=4.67.0.20250516",
     "SALib>=1.4.7",
     "joblib>=1.2.0.20240311",
+    "pydantic>=2.11.7",
 ]
 
 [project.scripts]
