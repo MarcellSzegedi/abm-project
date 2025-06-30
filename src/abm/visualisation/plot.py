@@ -276,10 +276,3 @@ class PlotRiot:
                 f"Invalid results_type: '{results_type}'. Must be either 'Rioter' or 'Injured'."
             )
         return results_type
-
-
-if __name__ == "__main__":
-    results_type = "Rioter"  # or "Injured"
-
-    plot_riot = PlotRiot(results_type=results_type)
-    plot_riot.plot_all()
