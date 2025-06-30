@@ -1,6 +1,6 @@
 """Sobol sensitivity test."""
 
-from typing import Any
+from typing import Annotated, Any
 
 import typer
 
@@ -10,7 +10,11 @@ app = typer.Typer()
 
 
 @app.command(name="sobol")
-def main():
+def main(
+    results_type: Annotated[
+        str, typer.Option("--results-type", help="The state to plot.")
+    ] = "Rioter",
+):
     """Produces the sobol sensitivity analysis."""
     problem: dict[str, Any] = {
         "num_vars": 6,
@@ -31,8 +35,6 @@ def main():
             [0.0, 1.0],  # Riot willingness threshold (0% to 100%)
         ],
     }
-
-    results_type = "Rioter"  # or "Injured"
 
     sensitivity_test = SensitivityTests(problem, results_type=results_type)
     sobol_df = sensitivity_test.sobol_sensitivity_test()
