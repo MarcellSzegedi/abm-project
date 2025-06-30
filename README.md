@@ -2,22 +2,58 @@
 
 [![Pytest](https://github.com/MarcellSzegedi/abm-project/actions/workflows/pytest.yaml/badge.svg)](https://github.com/MarcellSzegedi/abm-project/actions/workflows/pytest.yaml)
 &nbsp;
-[![Mypy Type Check](https://github.com/MarcellSzegedi/abm-project/actions/workflows/mypy.yaml/badge.svg)](https://github.com/MarcellSzegedi/abm-project/actions/workflows/mypy.yaml)
-&nbsp;
 [![Linting & Formatting](https://github.com/MarcellSzegedi/abm-project/actions/workflows/ruff.yaml/badge.svg)](https://github.com/MarcellSzegedi/abm-project/actions/workflows/ruff.yaml)
 
 <br>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)  
-![Version](https://img.shields.io/badge/version-0.1.0-orange)
+![Version](https://img.shields.io/badge/version-1.1.0-orange)
 
 ---
 
 ## 🚀 &nbsp; Running the Model
 
-* Simple run of the model + animation: run the file src/abm/model.py
-* Sensitivity test: run the file src/abm/sensitivity_test.py. You can adjust the code at the very bottom to specify whether to show the number of rioters or injuries.
-* Generate plots for the number of rioters/injuries over time: run the file src/abm/visualisation/plot.py. You can adjust the code at the very bottom to specify whether to show the number of rioters or injuries.
+#### 🔧 &nbsp; 1. &nbsp; Setup
+
+Before running the model, ensure all tools and dependencies used in the ABM package are synchronised.
+Run the following command in your terminal:
+
+```bash
+uv sync
+```
+Then, activate the virtual environment created by UV:
+```bash
+source .venv/bin/activate
+```
+#### 🎬 &nbsp; 2. &nbsp; Animation
+
+To run a single simulation of the model and view the results as an animation, use:
+```bash
+uv run abm animate --n-step <MAX_NUMBER_OF_STEPS_TO_ANIMATE>
+```
+The resulting animation will be saved to the root folder of the project as `abm_animation.html`.
+
+#### 📊 &nbsp; 3. &nbsp; Sobol Sensitivity Analysis
+
+To generate the Sobol sensitivity analysis for the ABM model using the default settings from the report, run:
+```bash
+uv run abm sobol --results-type <RESULTS_TYPE>
+```
+where `<RESULTS_TYPE>` can be either `"Rioter"` or `"Injured"`, depending on the agent state you wish to analyse.
+
+The output files will be saved in the project root as:
+- `sobol_sensitivity_analysis.png`
+- `sobol_interaction_heatmap.png`
+
+#### ⚙️ &nbsp; 4. &nbsp; Parameter Variation Analysis
+
+To analyse how the number of rioters or injured agents changes when varying different model parameters (street width, exit spacing, number of streets, and exit door spacing), run:
+```bash
+uv run abm plot-riot-all --results-type <RESULTS_TYPE>
+```
+where `<RESULTS_TYPE>` can be either `"Rioter"` or `"Injured"`, depending on the agent state you wish to analyse.
+
+The result will be saved in the root folder named `parameter_variation.png`.
 
 ---
 
