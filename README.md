@@ -1,4 +1,4 @@
-# ABM for the influence of urban design on riot emergence
+# ABM for the Influence of Urban Design on Riot Emergence
 
 [![Pytest](https://github.com/MarcellSzegedi/abm-project/actions/workflows/pytest.yaml/badge.svg)](https://github.com/MarcellSzegedi/abm-project/actions/workflows/pytest.yaml)
 &nbsp;
